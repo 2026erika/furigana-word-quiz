@@ -2969,8 +2969,15 @@ function showQuestion() {
 }
 
 function shareOnX() {
+    // 1. 呟かせたいテキスト（現在の正解数を自動で入るようにしています）
     const text = encodeURIComponent(`ふりがな英単語アプリで 10問中 ${currentScore}問 正解したよ！🔥\n`);
-    const url = "https://twitter.com/intent/tweet?text=" + text;
+    
+    // 🌟 2. あなたのアプリのURLを追加
+    const appUrl = encodeURIComponent("https://2026erika.github.io/furigana-word-quiz/"); 
+    
+    // 🌟 3. テキストとURLをどっちもXに送る形に合体させます
+    const url = `https://x.com/intent/tweet?text=${text}&url=${appUrl}`;
+    
     window.open(url, '_blank');
 }
 
