@@ -1,0 +1,3040 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>ふりがな英単語アプリ
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* アプリ全体の基本フォントを M PLUS Rounded 1c に設定 */
+        body, button, input, select, textarea, h1, h2, p, span, div {
+            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN", sans-serif !important;
+        }
+
+        /* 英単語と選択肢ボタンの中身は、読みやすさ（Sans-serif系）を最優先 */
+        .readable-eng-word, .readable-choice, ruby, rt {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        ruby { ruby-align: center; }
+        rt { font-size: 0.6em; color: #334155; font-weight: 800; }
+        
+        /* あいぼう選択画面用の薄いクリーム黄色・背景色 */
+        .bg-app-cream { background-color: #fefce8 !important; }
+        .bg-app-purple { background-color: #f3e8ff !important; }
+
+        /* 正解のボタンだけをほんのり薄緑にする（文字色には影響しません） */
+        button.btn-correct, .choice-btn-item.btn-correct {
+            background-color: #f0fdf4 !important; /* ごく薄い緑 */
+            border-color: #bbf7d0 !important;     /* 優しい薄緑の枠線 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="app" class="max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-white relative overflow-hidden">
+    </div>
+<script>
+   
+// 【データ定義】
+// 【レベル1の箱】
+const lv1 = [
+{ 
+    "word": "action", 
+    "choices": ["<ruby>行動<rt>こうどう</rt></ruby>", "<ruby>計画<rt>けいかく</rt></ruby>", "<ruby>発見<rt>発見</rt></ruby>", "<ruby>期待<rt>きたい</rt></ruby>"], 
+    "answer": 0 
+  },
+  { 
+    "word": "active", 
+    "choices": ["<ruby>親切な<rt>しんせつな</rt></ruby>", "<ruby>活発な<rt>かっぱつな</rt></ruby>", "<ruby>正直な<rt>しょうじきな</rt></ruby>", "<ruby>丁寧な<rt>ていねいな</rt></ruby>"], 
+    "answer": 1 
+  },
+  { 
+    "word": "activity", 
+    "choices": ["<ruby>宿題<rt>しゅくだい</rt></ruby>", "<ruby>休憩<rt>きゅうけい</rt></ruby>", "<ruby>活動<rt>かつどう</rt></ruby>", "<ruby>見学<rt>けんがく</rt></ruby>"], 
+    "answer": 2 
+  },
+  {
+    "word": "adventure",
+    "choices": [
+      "<ruby>冒険<rt>ぼうけん</rt></ruby>",
+      "<ruby>散歩<rt>さんぽ</rt></ruby>",
+      "<ruby>遠足<rt>えんそく</rt></ruby>",
+      "<ruby>旅行<rt>りょこう</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "afraid",
+    "choices": [
+      "<ruby>怒っている<rt>おこっている</rt></ruby>",
+      "<ruby>眠い<rt>ねむい</rt></ruby>",
+      "<ruby>怖がっている<rt>こわがっている</rt></ruby>",
+      "<ruby>驚いている<rt>おどろいている</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "agree",
+    "choices": [
+      "<ruby>賛成する<rt>さんせいする</rt></ruby>",
+      "<ruby>反対する<rt>はんたいする</rt></ruby>",
+      "<ruby>練習する<rt>れんしゅうする</rt></ruby>",
+      "<ruby>我慢する<rt>がまんする</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "answer",
+    "choices": [
+      "<ruby>質問<rt>しつもん</rt></ruby>",
+      "<ruby>答え<rt>こたえ</rt></ruby>",
+      "<ruby>秘密<rt>ひみつ</rt></ruby>",
+      "<ruby>物語<rt>ものがたり</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おはなし できごと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "attend",
+    "choices": [
+      "<ruby>出発する<rt>しゅっぱつする</rt></ruby>",
+      "<ruby>準備する<rt>じゅんびする</rt></ruby>",
+      "<ruby>見学する<rt>けんがくする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みてまなぶ みにいく）</span>",
+      "<ruby>出席する<rt>しゅっせきする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かいにでる）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "behavior",
+    "choices": [
+      "<ruby>振る舞い<rt>ふるまい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おこない・たいど）</span>",
+      "<ruby>表情<rt>ひょうじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かおのきもち）</span>",
+      "<ruby>性格<rt>せいかく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（どんなひとか）</span>",
+      "<ruby>記憶<rt>きおく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おぼえていること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "birth",
+    "choices": [
+      "<ruby>成長<rt>せいちょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おおきくなる そだつ）</span>",
+      "<ruby>誕生<rt>たんじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うまれる いのちがはじまる）</span>",
+      "<ruby>結婚<rt>けっこん</rt></ruby>",
+      "<ruby>生活<rt>せいかつ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（まいにちのくらし）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "blind",
+    "choices": [
+      "<ruby>目が不自由な<rt>めがふじゆうな</rt></ruby>",
+      "<ruby>耳が不自由な<rt>みみがふじゆうな</rt></ruby>",
+      "<ruby>体が弱い<rt>からだがよわい</rt></ruby>",
+      "<ruby>お腹が空いた<rt>おなかがすいた</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "blood",
+    "choices": [
+      "<ruby>汗<rt>あせ</rt></ruby>",
+      "<ruby>涙<rt>なみだ</rt></ruby>",
+      "<ruby>血<rt>ち</rt></ruby>",
+      "<ruby>骨<rt>ほね</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "board",
+    "choices": [
+      "<ruby>板<rt>いた</rt></ruby>",
+      "<ruby>鏡<rt>かがみ</rt></ruby>",
+      "<ruby>窓<rt>まど</rt></ruby>",
+      "<ruby>箱<rt>はこ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "book",
+    "choices": [
+      "<ruby>雑誌<rt>ざっし</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（しゃしんつきのほん）</span>",
+      "<ruby>手帳<rt>てちょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（よていノート）</span>",
+      "<ruby>本<rt>ほん</rt></ruby>",
+      "<ruby>漫画<rt>まんが</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（えがたくさんのほん）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "brain",
+    "choices": [
+      "<ruby>心臓<rt>しんぞう</rt></ruby>",
+      "<ruby>脳<rt>のう</rt></ruby>",
+      "<ruby>筋肉<rt>きんにく</rt></ruby>",
+      "<ruby>血管<rt>けっかん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ちのとおりみち）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "calm",
+    "choices": [
+      "<ruby>怒りっぽい<rt>おこりっぽい</rt></ruby>",
+      "<ruby>穏やかな<rt>おだやかな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おちついた）</span>",
+      "<ruby>勇敢な<rt>ゆうかんな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（つよい）</span>",
+      "<ruby>正直な<rt>しょうじきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんとうのこころ うそなし）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "care",
+    "choices": [
+      "<ruby>世話<rt>せわ</rt></ruby>",
+      "<ruby>勉強<rt>べんきょう</rt></ruby>",
+      "<ruby>秘密<rt>ひみつ</rt></ruby>",
+      "<ruby>約束<rt>やくそく</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "celebrate",
+    "choices": [
+      "<ruby>招待する<rt>しょうたいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きてねという）</span>",
+      "<ruby>紹介する<rt>しょうかいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おしえる つたえる）</span>",
+      "<ruby>準備する<rt>じゅんびする</rt></ruby>",
+      "<ruby>祝う<rt>いわう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おめでとうという）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "ceremony",
+    "choices": [
+      "<ruby>儀式<rt>ぎしき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おまつりごと）</span>",
+      "<ruby>習慣<rt>しゅうかん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いつもやること）</span>",
+      "<ruby>経験<rt>けいけん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やったこと）</span>",
+      "<ruby>目的<rt>もくてき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（めあて なんのためか）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "chase",
+    "choices": [
+      "<ruby>捕まえる<rt>つかまえる</rt></ruby>",
+      "<ruby>追いかける<rt>おいかける</rt></ruby>",
+      "<ruby>隠れる<rt>かくれる</rt></ruby>",
+      "<ruby>逃げる<rt>にげる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "chew",
+    "choices": [
+      "<ruby>飲む<rt>のむ</rt></ruby>",
+      "<ruby>運ぶ<rt>はこぶ</rt></ruby>",
+      "<ruby>噛む<rt>かむ</rt></ruby>",
+      "<ruby>投げる<rt>なげる</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "childhood",
+    "choices": [
+      "<ruby>子供時代<rt>こどもじだい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こどものころ）</span>",
+      "<ruby>未来<rt>みらい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（これからのこと）</span>",
+      "<ruby>放課後<rt>ほうかご</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がっこうのあと）</span>",
+      "<ruby>誕生日<rt>たんじょうび</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "choice",
+    "choices": [
+      "<ruby>答え<rt>こたえ</rt></ruby>",
+      "<ruby>理由<rt>りゆう</rt></ruby>",
+      "<ruby>目的<rt>もくてき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（めあて なんのためか）</span>",
+      "<ruby>選択<rt>せんたく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（えらぶこと）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "clerk",
+    "choices": [
+      "<ruby>店員<rt>てんいん</rt></ruby>",
+      "<ruby>お客<rt>おきゃく</rt></ruby>",
+      "<ruby>先生<rt>せんせい</rt></ruby>",
+      "<ruby>医者<rt>いしゃ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "customer",
+    "choices": [
+      "<ruby>警察官<rt>けいさつかん</rt></ruby>",
+      "<ruby>料理人<rt>りょうりにん</rt></ruby>",
+      "<ruby>客<rt>きゃく</rt></ruby>",
+      "<ruby>運転手<rt>うんてんしゅ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "cook",
+    "choices": [
+      "<ruby>洗う<rt>あらう</rt></ruby>",
+      "<ruby>食べる<rt>たべる</rt></ruby>",
+      "<ruby>運ぶ<rt>はこぶ</rt></ruby>",
+      "<ruby>料理する<rt>りょうりする</rt></ruby>"
+    ],
+    "answer": 3
+  },
+{
+    "word": "countryside",
+    "choices": [
+      "<ruby>都会<rt>とかい</rt></ruby>",
+      "<ruby>田舎<rt>いなか</rt></ruby>",
+      "<ruby>公園<rt>こうえん</rt></ruby>",
+      "<ruby>遊園地<rt>ゆうえんち</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "crowd",
+    "choices": [
+      "<ruby>静かな場所<rt>しずかなばしょ</rt></ruby>",
+      "<ruby>空き地<rt>あきち</rt></ruby>",
+      "<ruby>行列<rt>ぎょうれつ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ながいれつ）</span>",
+      "<ruby>人混み<rt>ひとごみ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ひとがいっぱい）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "cycle",
+    "choices": [
+      "<ruby>自転車に乗る<rt>じてんしゃにのる</rt></ruby>",
+      "<ruby>速く走る<rt>はやくはしる</rt></ruby>",
+      "<ruby>空を飛ぶ<rt>そらをとぶ</rt></ruby>",
+      "<ruby>海で泳ぐ<rt>うみでおよぐ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "diet",
+    "choices": [
+      "<ruby>食事<rt>しょくじ</rt></ruby>",
+      "<ruby>運動<rt>うんどう</rt></ruby>",
+      "<ruby>睡眠<rt>すいみん</rt></ruby>",
+      "<ruby>料理<rt>りょうり</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "department",
+    "choices": [
+      "<ruby>遊園地<rt>ゆうえんち</rt></ruby>",
+      "<ruby>図書館<rt>としょかん</rt></ruby>",
+      "<ruby>売場<rt>うりば</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（デパートのコーナー）</span>",
+      "<ruby>工場<rt>こうじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ものをつくるところ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "common",
+    "choices": [
+      "<ruby>特別な<rt>とくべつな</rt></ruby>",
+      "<ruby>有名な<rt>ゆうめいな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みんなしっている）</span>",
+      "<ruby>不思議な<rt>ふしぎな</rt></ruby>",
+      "<ruby>共通の<rt>きょうつうの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みんなにおなじ）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "communicate",
+    "choices": [
+      "<ruby>伝える<rt>つたえる</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いう）</span>",
+      "<ruby>練習する<rt>れんしゅうする</rt></ruby>",
+      "<ruby>準備する<rt>じゅんびする</rt></ruby>",
+      "<ruby>見学する<rt>けんがくする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みてまなぶ みにいく）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "complete",
+    "choices": [
+      "<ruby>壊す<rt>こわす</rt></ruby>",
+      "<ruby>完成させる<rt>かんせいさせる</rt></ruby>",
+      "<ruby>探し出す<rt>さがしだす</rt></ruby>",
+      "<ruby>片付ける<rt>かたづける</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "confident",
+    "choices": [
+      "<ruby>自信がある<rt>じしんがある</rt></ruby>",
+      "<ruby>心配している<rt>しんぱいしている</rt></ruby>",
+      "<ruby>怒っている<rt>おこっている</rt></ruby>",
+      "<ruby>驚いている<rt>おどろいている</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "connect",
+    "choices": [
+      "<ruby>分ける<rt>わける</rt></ruby>",
+      "<ruby>運ぶ<rt>はこぶ</rt></ruby>",
+      "<ruby>つなぐ<rt>つなぐ</rt></ruby>",
+      "<ruby>壊す<rt>こわす</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "connection",
+    "choices": [
+      "<ruby>繋がり<rt>つながり</rt></ruby>",
+      "<ruby>足跡<rt>あしあと</rt></ruby>",
+      "<ruby>景色<rt>けしき</rt></ruby>",
+      "<ruby>道具<rt>どうぐ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "continue",
+    "choices": [
+      "<ruby>止める<rt>とめる</rt></ruby>",
+      "<ruby>始める<rt>はじめる</rt></ruby>",
+      "<ruby>忘れる<rt>わすれる</rt></ruby>",
+      "<ruby>続ける<rt>つづける</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "control",
+    "choices": [
+      "<ruby>掃除する<rt>そうじする</rt></ruby>",
+      "<ruby>操る<rt>あやつる</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おもいどおりにうごかす）</span>",
+      "<ruby>観察する<rt>かんさつする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（じっとみること）</span>",
+      "<ruby>応援する<rt>おうえんする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がんばれという）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "conversation",
+    "choices": [
+      "<ruby>発表<rt>はっぴょう</rt></ruby>",
+      "<ruby>読書<rt>どくしょ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんをよむこと）</span>",
+      "<ruby>会話<rt>かいわ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おしゃべりすること）</span>",
+      "<ruby>暗記<rt>あんき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おぼえること）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "correct",
+    "choices": [
+      "<ruby>正解の<rt>せいかいの</rt></ruby>",
+      "<ruby>間違いの<rt>まちがいの</rt></ruby>",
+      "<ruby>難しい<rt>むずかしい</rt></ruby>",
+      "<ruby>有名な<rt>ゆうめいな</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "cover",
+    "choices": [
+      "<ruby>洗う<rt>あらう</rt></ruby>",
+      "<ruby>運ぶ<rt>はこぶ</rt></ruby>",
+      "<ruby>覆う<rt>おおう</rt></ruby>",
+      "<ruby>壊す<rt>こわす</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "create",
+    "choices": [
+      "<ruby>作り出す<rt>つくりだす</rt></ruby>",
+      "<ruby>片付ける<rt>かたづける</rt></ruby>",
+      "<ruby>追いかける<rt>おいかける</rt></ruby>",
+      "<ruby>持ち上げる<rt>もちあげる</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "creative",
+    "choices": [
+      "<ruby>親切な<rt>しんせつな</rt></ruby>",
+      "<ruby>厳しい<rt>きびしい</rt></ruby>",
+      "<ruby>正直な<rt>しょうじきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんとうのことをいう）</span>",
+      "<ruby>独創的な<rt>どくそうてきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（アイデアがすごい）</span>"
+    ],
+    "answer": 3
+  },
+{
+    "word": "dangerous",
+    "choices": [
+      "<ruby>危ない<rt>あぶない</rt></ruby>",
+      "<ruby>安全な<rt>あんぜんな</rt></ruby>",
+      "<ruby>大切な<rt>たいせつな</rt></ruby>",
+      "<ruby>珍しい<rt>めずらしい</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "decorate",
+    "choices": [
+      "<ruby>掃除する<rt>そうじする</rt></ruby>",
+      "<ruby>飾る<rt>かざる</rt></ruby>",
+      "<ruby>直す<rt>なおす</rt></ruby>",
+      "<ruby>守る<rt>まもる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "deliver",
+    "choices": [
+      "<ruby>届ける<rt>とどける</rt></ruby>",
+      "<ruby>受け取る<rt>うけとる</rt></ruby>",
+      "<ruby>集める<rt>あつめる</rt></ruby>",
+      "<ruby>捨てる<rt>すてる</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "design",
+    "choices": [
+      "<ruby>約束<rt>やくそく</rt></ruby>",
+      "<ruby>発見<rt>はっけん</rt></ruby>",
+      "<ruby>設計<rt>せっけい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かたちを決める）</span>",
+      "<ruby>成功<rt>せいこう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うまくいくこと）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "destroy",
+    "choices": [
+      "<ruby>直す<rt>なおす</rt></ruby>",
+      "<ruby>磨く<rt>みがく</rt></ruby>",
+      "<ruby>飾る<rt>かざる</rt></ruby>",
+      "<ruby>破壊する<rt>はかいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こわしてしまう）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "detail",
+    "choices": [
+      "<ruby>詳細<rt>しょうさい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（くわしいところ）</span>",
+      "<ruby>全体<rt>ぜんたい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ぜんぶのすがた）</span>",
+      "<ruby>最後<rt>さいご</rt></ruby>",
+      "<ruby>最初<rt>さいしょ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "direct",
+    "choices": [
+      "<ruby>丁寧な<rt>ていねいな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きちんと）</span>",
+      "<ruby>直接の<rt>ちょくせつの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（まっすぐの そのまま）</span>",
+      "<ruby>安全な<rt>あんぜんな</rt></ruby>",
+      "<ruby>遠い<rt>とおい</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "direction",
+    "choices": [
+      "<ruby>方向<rt>ほうこう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（むいているほう）</span>",
+      "<ruby>歴史<rt>れきし</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（むかしのこと）</span>",
+      "<ruby>理由<rt>りゆう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（わけ）</span>",
+      "<ruby>道具<rt>どうぐ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "difficulty",
+    "choices": [
+      "<ruby>喜び<rt>よろこび</rt></ruby>",
+      "<ruby>不思議<rt>ふしぎ</rt></ruby>",
+      "<ruby>正解<rt>せいかい</rt></ruby>",
+      "<ruby>困難<rt>こんなん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（むずかしいこと）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "comfort",
+    "choices": [
+      "<ruby>快適さ<rt>かいてきさ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きもちよさ）</span>",
+      "<ruby>退屈さ<rt>たいくつさ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あきてしまうこと）</span>",
+      "<ruby>騒がしさ<rt>さわがしさ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おおきなおと）</span>",
+      "<ruby>忙しさ<rt>いそがしさ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "complain",
+    "choices": [
+      "<ruby>不満を言う<rt>ふまんをいう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（もんくをいう）</span>",
+      "<ruby>元気を出す<rt>げんきをだす</rt></ruby>",
+      "<ruby>秘密を守る<rt>ひみつをまもる</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（だれにもいわない）</span>",
+      "<ruby>我慢をする<rt>がまんをする</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "confuse",
+    "choices": [
+      "<ruby>理解する<rt>りかいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（わかる）</span>",
+      "<ruby>納得する<rt>なっとくする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（なるほどとおもう きもちがおさまる）</span>",
+      "<ruby>混乱させる<rt>こんらんさせる</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（わからなくさせる）</span>",
+      "<ruby>安心させる<rt>あんしんさせる</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "courage",
+    "choices": [
+      "<ruby>勇気<rt>ゆうき</rt></ruby>",
+      "<ruby>恐怖<rt>きょうふ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こわいきもち）</span>",
+      "<ruby>知識<rt>ちしき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（しっていること）</span>",
+      "<ruby>希望<rt>きぼう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こうなってほしい）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "frozen",
+    "choices": [
+      "<ruby>乾いた<rt>かわいた</rt></ruby>",
+      "<ruby>凍った<rt>こおった</rt></ruby>",
+      "<ruby>焼けた<rt>やけた</rt></ruby>",
+      "<ruby>濡れた<rt>ぬれた</rt></ruby>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "full",
+    "choices": [
+      "<ruby>空っぽの<rt>からっぽの</rt></ruby>",
+      "<ruby>少ない<rt>すくない</rt></ruby>",
+      "<ruby>重い<rt>おもい</rt></ruby>",
+      "いっぱいの"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "furniture",
+    "choices": [
+      "<ruby>食器<rt>しょっき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ごはんのおさら）</span>",
+      "<ruby>家電<rt>かでん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いえにあるでんきでうごくもの）</span>",
+      "<ruby>家具<rt>かぐ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（テーブル ソファー ベッドなど）</span>",
+      "<ruby>文房具<rt>ぶんぼうぐ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（えんぴつ けしゴム じょうぎなど）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "garbage",
+    "choices": [
+      "<ruby>宝物<rt>たからもの</rt></ruby>",
+      "ゴミ",
+      "おもちゃ",
+      "<ruby>洗濯物<rt>せんたくもの</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "gather",
+    "choices": [
+      "<ruby>集まる<rt>あつまる</rt></ruby>",
+      "<ruby>別れる<rt>わかれる</rt></ruby>",
+      "<ruby>壊れる<rt>こわれる</rt></ruby>",
+      "<ruby>逃げる<rt>にげる</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "graduate",
+    "choices": [
+      "<ruby>入学する<rt>にゅうがくする</rt></ruby>",
+      "<ruby>進級する<rt>しんきゅうする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ひとつうえのクラスになる）</span>",
+      "<ruby>休学する<rt>きゅうがくする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がっこうをしばらくやすむ）</span>",
+      "<ruby>卒業する<rt>そつぎょうする</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "grocery",
+    "choices": [
+      "<ruby>文房具屋<rt>ぶんぼうぐや</rt></ruby>",
+      "<ruby>食料品店<rt>しょくりょうひんてん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（たべもののおみせ）</span>",
+      "<ruby>金物屋<rt>かなものや</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（どうぐのおみせ）</span>",
+      "<ruby>衣料品店<rt>いりょうひんてん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ふくのおみせ）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "guard",
+    "choices": [
+      "<ruby>壊す<rt>こわす</rt></ruby>",
+      "<ruby>見守る<rt>みまもる</rt></ruby>",
+      "<ruby>盗む<rt>ぬすむ</rt></ruby>",
+      "<ruby>捨てる<rt>すてる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "guilty",
+    "choices": [
+      "<ruby>有罪の<rt>ゆうざいの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（わるいことをした）</span>",
+      "<ruby>無実の<rt>むじつの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（なにもしていない）</span>",
+      "<ruby>正直な<rt>しょうじきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うそをつかない）</span>",
+      "<ruby>寛大な<rt>かんだいな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こころがひろい）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "habit",
+    "choices": [
+      "<ruby>目標<rt>もくひょう</rt></ruby>",
+      "<ruby>才能<rt>さいのう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（すごいちから）</span>",
+      "<ruby>習慣<rt>しゅうかん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いつもすること）</span>",
+      "<ruby>期待<rt>きたい</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "hide",
+    "choices": [
+      "<ruby>見つける<rt>みつける</rt></ruby>",
+      "<ruby>隠れる<rt>かくれる</rt></ruby>",
+      "<ruby>叫ぶ<rt>さけぶ</rt></ruby>",
+      "<ruby>走る<rt>はしる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "hopeful",
+    "choices": [
+      "<ruby>悲しい<rt>かなしい</rt></ruby>",
+      "<ruby>不安な<rt>ふあんな</rt></ruby>",
+      "<ruby>退屈な<rt>たいくつな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あきちゃう）</span>",
+      "<ruby>希望に満ちた<rt>きぼうにみちた</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（わくわくしている）</span>"
+    ],
+    "answer": 3
+  },
+ {
+    "word": "humble",
+    "choices": [
+      "<ruby>謙虚な<rt>けんきょな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いばらないこと）</span>",
+      "<ruby>傲慢な<rt>ごうまんな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いばっている）</span>",
+      "<ruby>勇敢な<rt>ゆうかんな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（つよいこころをもつ）</span>",
+      "<ruby>慎重な<rt>しんちょうな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きをつけてやる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "humor",
+    "choices": [
+      "<ruby>怒り<rt>いかり</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おこるきもち）</span>",
+      "<ruby>悲しみ<rt>かなしみ</rt></ruby>",
+      "<ruby>可笑しさ<rt>おかしさ</rt></ruby>",
+      "<ruby>驚き<rt>おどろき</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "ideal",
+    "choices": [
+      "<ruby>現実の<rt>げんじつの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんとうの）</span>",
+      "<ruby>理想の<rt>りそうの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いちばんいいすがた）</span>",
+      "<ruby>過去の<rt>かこの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（もうすぎた まえのこと）</span>",
+      "<ruby>普通の<rt>ふつうの</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "incredibly",
+    "choices": [
+      "<ruby>信じられないほど<rt>しんじられないほど</rt></ruby>",
+　　"おそらく<br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（たぶん）</span>",
+      "<ruby>時々<rt>ときどき</rt></ruby>",
+      "<ruby>絶対に<rt>ぜったいに</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "insect",
+    "choices": [
+      "<ruby>動物<rt>どうぶつ</rt></ruby>",
+      "<ruby>植物<rt>しょくぶつ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（はな き くさなど）</span>",
+      "<ruby>魚<rt>さかな</rt></ruby>",
+      "<ruby>昆虫<rt>こんちゅう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（むし）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "instant",
+    "choices": [
+      "<ruby>永遠の<rt>えいえんの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ずっとつづく）</span>",
+      "<ruby>即座の<rt>そくざの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（すぐ しゅんかん）</span>",
+      "<ruby>丁寧な<rt>ていねいな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きちんと）</span>",
+      "<ruby>静かな<rt>しずかな</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "instructor",
+    "choices": [
+      "<ruby>生徒<rt>せいと</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がっこうのこ）</span>",
+      "<ruby>選手<rt>せんしゅ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（スポーツをするひと）</span>",
+      "<ruby>指導員<rt>しどういん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おしえるひと）</span>",
+      "<ruby>審判<rt>しんぱん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かちまけをきめるひと）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "instrument",
+    "choices": [
+      "<ruby>楽器<rt>がっき</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ピアノ バイオリン フルートなど）</span>",
+      "<ruby>家具<rt>かぐ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（テーブル ソファー ベッドなど）</span>",
+      "<ruby>文房具<rt>ぶんぼうぐ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（えんぴつ けしゴム じょうぎなど）</span>",
+      "<ruby>乗り物<rt>のりもの</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "interest",
+    "choices": [
+      "<ruby>我慢<rt>がまん</rt></ruby>",
+      "<ruby>期待<rt>きたい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ワクワクしてまつ）</span>",
+      "<ruby>恐怖<rt>きょうふ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こわいとお思うこと）</span>",
+      "<ruby>興味<rt>きょうみ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おもしろそうと思うこと）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "introduce",
+    "choices": [
+      "<ruby>紹介する<rt>しょうかいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おしえる つたえる）</span>",
+      "<ruby>招待する<rt>しょうたいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きてねという）</span>",
+      "<ruby>準備する<rt>じゅんびする</rt></ruby>",
+      "<ruby>発明する<rt>はつめいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（べんりなものをつくる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "jealousy",
+    "choices": [
+      "<ruby>嫉妬<rt>しっと</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やきもち うらやむ）</span>",
+      "<ruby>尊敬<rt>そんけい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（すごいとおもうこと）</span>",
+      "<ruby>満足<rt>まんぞく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うれしくおもうこと）</span>",
+      "<ruby>友情<rt>ゆうじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ともだちのきもち）</span>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "journey",
+    "choices": [
+      "<ruby>休憩<rt>きゅうけい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やすむじかん）</span>",
+      "<ruby>運動<rt>うんどう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだをうごかすこと）</span>",
+      "<ruby>旅<rt>たび</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（りょこう）</span>",
+      "<ruby>祭<rt>まつり</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "language",
+    "choices": [
+      "<ruby>音楽<rt>おんがく</rt></ruby>",
+      "<ruby>図形<rt>ずけい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かたちのえ）</span>",
+      "<ruby>数学<rt>すうがく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（さんすう）</span>",
+      "<ruby>言語<rt>げんご</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ことば）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "last",
+    "choices": [
+      "<ruby>最初の<rt>さいしょの</rt></ruby>",
+      "<ruby>最後の<rt>さいごの</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いちばんうしろ）</span>",
+      "<ruby>特別な<rt>とくべつな</rt></ruby>",
+      "<ruby>有名な<rt>ゆうめいな</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "lazy",
+    "choices": [
+      "<ruby>怠惰な<rt>たいだな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やるきがでない なまける）</span>",
+      "<ruby>真面目な<rt>まじめな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いっしょうけんめいやる）</span>",
+      "<ruby>几帳面な<rt>きちょうめんな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きっちりていねいにやる）</span>",
+      "<ruby>積極的な<rt>せっきょくてきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（すすんでやる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "lead",
+    "choices": [
+      "<ruby>隠す<rt>かくす</rt></ruby>",
+      "<ruby>探す<rt>さがす</rt></ruby>",
+      "<ruby>運ぶ<rt>はこぶ</rt></ruby>",
+      "<ruby>案内する<rt>あんないする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（つれていっておしえる）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "lend",
+    "choices": [
+      "<ruby>貸す<rt>かす</rt></ruby>",
+      "<ruby>売る<rt>うる</rt></ruby>",
+      "<ruby>投げる<rt>なげる</rt></ruby>",
+      "<ruby>壊す<rt>こわす</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "lesson",
+    "choices": [
+      "<ruby>運動会<rt>うんどうかい</rt></ruby>",
+      "<ruby>遠足<rt>えんそく</rt></ruby>",
+      "<ruby>授業<rt>じゅぎょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がっこうのおべんきょう）</span>",
+      "<ruby>給食<rt>きゅうしょく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がっこうのランチ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "level",
+    "choices": [
+      "<ruby>重さ<rt>おもさ</rt></ruby>",
+      "<ruby>長さ<rt>ながさ</rt></ruby>",
+      "<ruby>速さ<rt>はやさ</rt></ruby>",
+      "<ruby>高さ<rt>たかさ</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "lie",
+    "choices": [
+      "<ruby>嘘をつく<rt>うそをつく</rt></ruby>",
+      "<ruby>約束する<rt>やくそくする</rt></ruby>",
+      "<ruby>謝る<rt>あやまる</rt></ruby>",
+      "<ruby>自慢する<rt>じまん</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "market",
+    "choices": [
+      "<ruby>市場<rt>いちば</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（たべものなどをうるみせ）</span>",
+      "<ruby>劇場<rt>げきじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おしばいをみるところ）</span>",
+      "<ruby>工場<rt>こうじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ものをつくるところ）</span>",
+      "<ruby>牧場<rt>ぼくじょう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うしやうまがいるところ）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "mirror",
+    "choices": [
+      "<ruby>窓<rt>まど</rt></ruby>",
+      "<ruby>鍵<rt>かぎ</rt></ruby>",
+      "<ruby>鏡<rt>かがみ</rt></ruby>",
+      "<ruby>壁<rt>かべ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "mistake",
+    "choices": [
+      "<ruby>成功<rt>せいこう</rt></ruby>",
+      "<ruby>発見<rt>はっけん</rt></ruby>",
+      "<ruby>準備<rt>じゅんび</rt></ruby>",
+      "<ruby>間違い<rt>まちがい</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "moment",
+    "choices": [
+      "<ruby>瞬間<rt>しゅんかん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんのみじかいあいだ）</span>",
+      "<ruby>永遠<rt>えいえん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ずっとおわらないこと）</span>",
+      "<ruby>過去<rt>かこ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（まえにおわったこと）</span>",
+      "<ruby>未来<rt>みらい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（これからおこること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "monitor",
+    "choices": [
+      "<ruby>鏡<rt>かがみ</rt></ruby>",
+      "<ruby>画面<rt>がめん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（テレビやパソコンのうつるところ）</span>",
+      "<ruby>地図<rt>ちず</rt></ruby>",
+      "<ruby>看板<rt>かんばん</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "muscle",
+    "choices": [
+      "<ruby>筋肉<rt>きんにく</rt></ruby>",
+      "<ruby>骨<rt>ほね</rt></ruby>",
+      "<ruby>血管<rt>けっかん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ちがとおるくだ）</span>",
+      "<ruby>脂肪<rt>しぼう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだにつくあぶら）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "noise",
+    "choices": [
+      "<ruby>歌声<rt>うたごえ</rt></ruby>",
+      "<ruby>音楽<rt>おんがく</rt></ruby>",
+      "<ruby>騒音<rt>そうおん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うるさいおと）</span>",
+      "<ruby>話し声<rt>はなしごえ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "nod",
+    "choices": [
+      "<ruby>頷く<rt>うなずく</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うんとあたまをさげる）</span>",
+      "<ruby>首を振る<rt>くびをふる</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（いやいやとよこにふる）</span>",
+      "<ruby>見上げる<rt>みあげる</rt></ruby>",
+      "<ruby>目を閉じる<rt>めをとじる</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "normal",
+    "choices": [
+      "<ruby>特別な<rt>とくべつな</rt></ruby>",
+      "<ruby>不思議な<rt>ふしぎな</rt></ruby>",
+      "<ruby>珍しい<rt>めずらしい</rt></ruby>",
+      "<ruby>普通の<rt>ふつうの</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "normally",
+    "choices": [
+      "<ruby>普通は<rt>ふつうは</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（たいてい いつもなら）</span>",
+      "<ruby>突然に<rt>とつぜんに</rt></ruby>",
+      "<ruby>絶対に<rt>ぜったいに</rt></ruby>",
+      "たまに"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "notice",
+    "choices": [
+      "<ruby>手紙<rt>てがみ</rt></ruby>",
+      "<ruby>教科書<rt>きょうかしょ</rt></ruby>",
+      "<ruby>お知らせ<rt>おしらせ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（かべにはってあるかみ）</span>",
+      "<ruby>写真<rt>しゃしん</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "nutrition",
+    "choices": [
+      "<ruby>運動<rt>うんどう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだをうごかすこと）</span>",
+      "<ruby>睡眠<rt>すいみん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ねむること）</span>",
+      "<ruby>清潔<rt>せいけつ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（きれいにすること）</span>",
+      "<ruby>栄養<rt>えいよう</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだをげんきにするもの）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "nutritious",
+    "choices": [
+      "<ruby>苦い<rt>にがい</rt></ruby>",
+      "<ruby>栄養がある<rt>えいようがある</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだにとてもいい）</span>",
+      "<ruby>甘い<rt>あまい</rt></ruby>",
+      "<ruby>味が薄い<rt>あじがうすい</rt></ruby>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "orchestra",
+    "choices": [
+      "<ruby>管弦楽団<rt>かんげんがくだん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ピアノ バイオリンなどのがっそう）</span>",
+      "<ruby>合唱団<rt>がっしょうだん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みんなでうたをうたう）</span>",
+      "<ruby>運動部<rt>うんどうぶ</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（スポーツをするところ）</span>",
+      "<ruby>応援団<rt>おうえんだん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（フレフレとおうえんする）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "order",
+    "choices": [
+      "<ruby>お喋り<rt>おしゃべり</rt></ruby>",
+      "<ruby>お散歩<rt>おさんぽ</rt></ruby>",
+      "<ruby>お買い物<rt>おかいもの</rt></ruby>",
+      "<ruby>注文<rt>ちゅうもん</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（おみせなどでこれくださいとたのむ）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "own",
+    "choices": [
+      "<ruby>自分の<rt>じぶんの</rt></ruby>",
+      "<ruby>家族の<rt>かぞくの</rt></ruby>",
+      "<ruby>学校の<rt>がっこうの</rt></ruby>",
+      "<ruby>友達の<rt>ともだちの</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "pack",
+    "choices": [
+      "<ruby>捨てる<rt>すてる</rt></ruby>",
+      "<ruby>壊す<rt>こわす</rt></ruby>",
+      "<ruby>詰める<rt>つめる</rt></ruby>",
+      "<ruby>選ぶ<rt>えらぶ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "pain",
+    "choices": [
+      "<ruby>痛み<rt>いたみ</rt></ruby>",
+      "<ruby>怒り<rt>いかり</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あたまにきておこること）</span>",
+      "<ruby>眠気<rt>ねむけ</rt></ruby>",
+      "<ruby>疲れ<rt>つかれ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "physical",
+    "choices": [
+      "<ruby>精神的な<rt>せいしんてきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（こころのなかのこと）</span>",
+      "<ruby>身体的な<rt>しんたいてきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだにかんすること）</span>",
+      "<ruby>知的な<rt>ちてきな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あたまがとてもよいこと）</span>",
+      "<ruby>魔法のような<rt>まほうのような</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "physician",
+    "choices": [
+      "<ruby>学校の先生<rt>がっこうのせんせい</rt></ruby>",
+      "<ruby>お巡りさん<rt>おまわりさん</rt></ruby>",
+      "<ruby>内科のお医者さん<rt>ないかのおいしゃさん</rt></ruby>",
+      "<ruby>消防士さん<rt>しょうぼうしさん</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "polite",
+    "choices": [
+      "<ruby>乱暴な<rt>らんぼうな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あらっぽくてこわいこと）</span>",
+      "<ruby>礼儀正しい<rt>れいぎただしい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あいさつがしっかりできる）</span>",
+      "<ruby>騒がしい<rt>さわがしい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（うるさくておちつかない）</span>",
+      "<ruby>怠惰な<rt>たいだな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やるきがなくてなまける）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "portable",
+    "choices": [
+      "<ruby>持ち運べる<rt>もちはこべる</rt></ruby>",
+      "<ruby>動かせない<rt>うごかせない</rt></ruby>",
+      "<ruby>壊れやすい<rt>こわれやすい</rt></ruby>",
+      "<ruby>組み立てる<rt>くみたてる</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "positive",
+    "choices": [
+      "<ruby>臆病な<rt>おくびょうな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（びくびくしてこわがる）</span>",
+      "<ruby>疑い深い<rt>うたがいぶかい</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（ほんとうかな？とうたがう）</span>",
+      "<ruby>意地悪な<rt>いじわるな</rt></ruby>",
+      "<ruby>前向きな<rt>まえむきな</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "possible",
+    "choices": [
+      "<ruby>無理な<rt>むりな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（どうしてもできないこと）</span>",
+      "<ruby>出来る<rt>できる</rt></ruby>",
+      "<ruby>危険な<rt>きけんな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（あぶない）</span>",
+      "<ruby>無駄な<rt>むだな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（やってもいみがないこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "practice",
+    "choices": [
+      "<ruby>練習する<rt>れんしゅうする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（なんかいもやってみる）</span>",
+      "<ruby>休憩する<rt>きゅうけいする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（からだをゆっくりやすめる）</span>",
+      "<ruby>見学する<rt>けんがくする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（みてまなぶ みにいく）</span>",
+      "<ruby>応援する<rt>おうえんする</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（がんばれー！とこえをだす）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "prepare",
+    "choices": [
+      "<ruby>片付ける<rt>かたづける</rt></ruby>",
+      "<ruby>用意する<rt>よういする</rt></ruby>",
+      "<ruby>掃除する<rt>そうじする</rt></ruby>",
+      "<ruby>洗濯する<rt>せんたくする</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "private",
+    "choices": [
+      "<ruby>自分だけの<rt>じぶんだけの</rt></ruby>",
+      "<ruby>皆んなの<rt>みんなの</rt></ruby>",
+      "<ruby>有名な<rt>ゆうめいな</rt></ruby><br><span class='text-sm md:text-base text-slate-500 font-normal mt-1'>（たくさんのひとがしっている）</span>",
+      "<ruby>新しい<rt>あたらしい</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "problem",
+    "choices": [
+      "<ruby>答え<rt>こたえ</rt></ruby>",
+      "ヒント",
+      "<ruby>名前<rt>なまえ</rt></ruby>",
+      "<ruby>問題<rt>もんだい</rt></ruby>"
+    ],
+    "answer": 3
+  }
+    ];
+
+// 【レベル２の箱】
+const lv2 = [
+  
+{
+    "word": "book",
+    "choices": [
+      "<ruby>予約する<rt>よやくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（せきをとる）</span>",
+      "<ruby>注文する<rt>ちゅうもんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（たのむ）</span>",
+      "<ruby>約束する<rt>やくそくする</rt></ruby>",
+      "<ruby>見学する<rt>けんがくする</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "board",
+    "choices": [
+      "<ruby>掃除する<rt>そうじする</rt></ruby>",
+      "<ruby>乗り込む<rt>のりこむ</rt></ruby>",
+      "<ruby>横切る<rt>よこぎる</rt></ruby>",
+      "<ruby>通り過ぎる<rt>とおりすぎる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "last",
+    "choices": [
+      "<ruby>継続する<rt>けいぞくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ずっとつづくこと）</span>",
+      "<ruby>変化する<rt>へんかする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ちがうものになること）</span>",
+      "<ruby>停止する<rt>ていしする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うごきがとまること）</span>",
+      "<ruby>移動する<rt>いどうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほかのばしょへいくこと）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "lead",
+    "choices": [
+      "<ruby>支持する<rt>しじする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いいなとおもっておうえんする）</span>",
+      "<ruby>協力する<rt>きょうりょくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでちからをあわせる）</span>",
+      "<ruby>指導する<rt>しどうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（リーダーになっておしえる）</span>",
+      "<ruby>観察する<rt>かんさつする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じっとようすをみる）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "lie",
+    "choices": [
+      "<ruby>横たわる<rt>よこたわる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ねころぶこと）</span>",
+      "<ruby>飛びのく<rt>とびのく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぱっとよけること）</span>",
+      "<ruby>振り返る<rt>ふりかえる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うしろをみること）</span>",
+      "<ruby>立ち上がる<rt>たちあがる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（さっとたつこと）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "lift",
+    "choices": [
+      "<ruby>回す<rt>まわす</rt></ruby>",
+      "<ruby>持ち上げる<rt>もちあげる</rt></ruby>",
+      "<ruby>押しつぶす<rt>おしつぶす</rt></ruby>",
+      "<ruby>引きずる<rt>ひきずる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "liquid",
+    "choices": [
+      "<ruby>気体<rt>きたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くうき けむりなど）</span>",
+      "<ruby>個体<rt>こたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いしやきなどかたいもの）</span>",
+      "<ruby>粉末<rt>ふんまつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こな さらさらしたもの）</span>",
+      "<ruby>液体<rt>えきたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みず ジュースなど）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "medicine",
+    "choices": [
+      "<ruby>栄養<rt>えいよう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだがげんきになるもと）</span>",
+      "<ruby>薬<rt>くすり</rt></ruby>",
+      "<ruby>毒<rt>どく</rt></ruby>",
+      "<ruby>傷<rt>きず</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "metal",
+    "choices": [
+      "<ruby>木材<rt>もくざい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きでできたもの）</span>",
+      "<ruby>布<rt>ぬの</rt></ruby>",
+      "<ruby>金属<rt>きんぞく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（てつ どう きんなど）</span>",
+      "<ruby>粘土<rt>ねんど</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かたちをかえられるつち）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "ingredient",
+    "choices": [
+      "<ruby>材料<rt>ざいりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（りょうりにつかうもの）</span>",
+      "<ruby>道具<rt>どうぐ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はさみ かなづちなど）</span>",
+      "<ruby>調味料<rt>ちょうみりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（さとう しお しょうゆなど）</span>",
+      "<ruby>食器<rt>しょっき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おさら コップなど）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "local",
+    "choices": [
+      "<ruby>国際的な<rt>こくさいてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（せかいじゅうの）</span>",
+      "<ruby>都会的な<rt>とかいてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ビルがたくさんあるまち）</span>",
+      "<ruby>伝統的な<rt>でんとうてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしからつづく）</span>",
+      "<ruby>地元の<rt>じもとの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そのばしょにちかい）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "level",
+    "choices": [
+      "<ruby>目標<rt>もくひょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（めざしているゴール）</span>",
+      "<ruby>水準<rt>すいじゅん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どれくらいできるか）</span>",
+      "<ruby>限界<rt>げんかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（これいじょうできないところ）</span>",
+      "<ruby>平均<rt>へいきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなをあわせたまんなか）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "order",
+    "choices": [
+      "<ruby>混乱<rt>こんらん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（めちゃくちゃになること）</span>",
+      "<ruby>喧嘩<rt>けんか</rt></ruby>",
+      "<ruby>遊び<rt>あそび</rt></ruby>",
+      "<ruby>順番<rt>じゅんばん</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "own",
+    "choices": [
+      "<ruby>借りる<rt>かりる</rt></ruby>",
+      "<ruby>所有する<rt>しょゆうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じぶんのものにすること）</span>",
+      "<ruby>無くす<rt>なくす</rt></ruby>",
+      "<ruby>共有する<rt>きょうゆうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでつかうこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "notice",
+    "choices": [
+      "<ruby>気づく<rt>きづく</rt></ruby>",
+      "<ruby>忘れる<rt>わすれる</rt></ruby>",
+      "<ruby>隠す<rt>かくす</rt></ruby>",
+      "<ruby>疑う<rt>うたがう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほんとうかな？とおもう）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "practice",
+    "choices": [
+      "<ruby>相談する<rt>そうだんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうすればいいかきくこと）</span>",
+      "<ruby>批判する<rt>ひはんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だめなところをいうこと）</span>",
+      "<ruby>実行する<rt>じっこうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きめたことをじっさいにやる）</span>",
+      "<ruby>空想する<rt>くうそうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたまのなかでおもいえがく）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "prepare",
+    "choices": [
+      "<ruby>準備する<rt>じゅんびする</rt></ruby>",
+      "<ruby>観察する<rt>かんさつする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じっとようすをみること）</span>",
+      "<ruby>発表する<rt>はっぴょうする</rt></ruby>",
+      "<ruby>調査する<rt>ちょうさする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しらないことをしらべる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "problem",
+    "choices": [
+      "<ruby>事件<rt>じけん</rt></ruby>",
+      "<ruby>約束<rt>やくそく</rt></ruby>",
+      "<ruby>平和<rt>へいわ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんながなかよしなこと）</span>",
+      "<ruby>困ったこと<rt>こまったこと</rt></ruby>"
+    ],
+    "answer": 3
+  }
+
+];
+
+// 【レベル３の箱】
+const lv3 = [
+
+{
+    "word": "abuse",
+    "choices": [
+      "<ruby>乱用<rt>らんよう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ただしくないもくてきでつかいすぎること）</span>",
+      "<ruby>親切<rt>しんせつ</rt></ruby>",
+      "<ruby>協力<rt>きょうりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでちからをあわせること）</span>",
+      "<ruby>尊敬<rt>そんけい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あいてをすごいとおもうこと）</span>"
+    ],
+    "answer": 0
+  },
+{
+"word": "academic",
+    "choices": [
+      "<ruby>実技的な<rt>じつぎてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだをうごかしておぼえるような）</span>",
+      "<ruby>学術的な<rt>がくじゅつてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だいがくのけんきゅうやべんきょう）</span>",
+      "<ruby>娯楽の<rt>ごらくの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あそびやたのしいこと）</span>",
+      "<ruby>宣伝の<rt>せんでんの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをうるためのおしらせ）</span>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "access",
+    "choices": [
+      "<ruby>制限<rt>せいげん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やってはいけないときめること）</span>",
+      "<ruby>遮断<rt>しゃだん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ふさいでとおれなくする）</span>",
+      "<ruby>利用権<rt>りようけん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかえるやくそく・つかっていいちから）</span>",
+      "<ruby>撤退<rt>てったい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やめてかえる）</span>"
+    ],
+    "answer": 2
+  },
+ {
+    "word": "account",
+    "choices": [
+      "<ruby>口座<rt>こうざ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぎんこうでおかねをいれるところ）</span>",
+      "<ruby>借金<rt>しゃっきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひとからかりているおかね）</span>",
+      "<ruby>寄付<rt>きふ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やくにたててもらうためにおくるおかね）</span>",
+      "<ruby>税金<rt>ぜいきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くにをささえるためにはらうおかね）</span>"
+    ],
+    "answer": 0
+  },
+ {
+    "word": "accurate",
+    "choices": [
+      "<ruby>曖昧な<rt>あいまいな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はっきりせずわかりにくい）</span>",
+      "<ruby>迅速な<rt>じんそくな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものすごくはやくうごくこと）</span>",
+      "<ruby>慎重な<rt>しんちょうな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あぶなくないようにきをつける）</span>",
+      "<ruby>正確な<rt>せいかくな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（まちがいがない ぴったり）</span>"
+    ],
+    "answer": 3
+  },
+{
+    "word": "achieve",
+    "choices": [
+      "<ruby>達成する<rt>たっせいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がんばってもくひょうをやりとげる）</span>",
+      "<ruby>失敗する<rt>しっぱいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うまくいかずにおわること）</span>",
+      "<ruby>放棄する<rt>ほうきする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（とちゅうでなげだしてしまうこと）</span>",
+      "<ruby>延期する<rt>えんきする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あとにのばしにすること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "adopt",
+    "choices": [
+      "<ruby>捨てる<rt>すてる</rt></ruby>",
+      "<ruby>隠す<rt>かくす</rt></ruby>",
+      "<ruby>受け入れる<rt>うけいれる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（とりいれる なかまにする）</span>",
+      "<ruby>逃げる<rt>にげる</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "advance",
+    "choices": [
+      "<ruby>前進する<rt>ぜんしんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（まえにすすむ）</span>",
+      "<ruby>後退する<rt>こうたいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うしろにさがる）</span>",
+      "<ruby>休憩する<rt>きゅうけいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ゆっくりやすむ）</span>",
+      "<ruby>集合する<rt>しゅうごうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなであつまる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "advanced",
+    "choices": [
+      "<ruby>簡単な<rt>かんたんな</rt></ruby>",
+      "<ruby>進んだ<rt>すすんだ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（レベルがたかい）</span>",
+      "<ruby>遅い<rt>おそい</rt></ruby>",
+      "<ruby>壊れた<rt>こわれた</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "advertisement",
+    "choices": [
+      "<ruby>宿題<rt>しゅくだい</rt></ruby>",
+      "<ruby>日記<rt>にっき</rt></ruby>",
+      "<ruby>広告<rt>こうこく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おすすめのおしらせ）</span>",
+      "<ruby>教科書<rt>きょうかしょ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "affair",
+    "choices": [
+      "<ruby>空の天気<rt>そらのてんき</rt></ruby>",
+      "<ruby>特別なできごと<rt>とくべつなできごと</rt></ruby>",
+      "<ruby>将来の夢<rt>しょうらいのゆめ</rt></ruby>",
+      "<ruby>毎日の食事<rt>まいにちのしょくじ</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "agent",
+    "choices": [
+      "<ruby>代理人<rt>だいりにん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かわりのひと おねがいされたひと）</span>",
+      "<ruby>親友<rt>しんゆう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なかよしなともだち）</span>",
+      "<ruby>泥棒<rt>どろぼう</rt></ruby>",
+      "<ruby>先生<rt>せんせい</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "agriculture",
+    "choices": [
+      "<ruby>工場<rt>こうじょう</rt></ruby>",
+      "<ruby>農業<rt>のうぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やさいやおこめづくり）</span>",
+      "<ruby>貿易<rt>ぼうえき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がいこくとうりかい）</span>",
+      "<ruby>探検<rt>たんけん</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "analysis",
+    "choices": [
+      "<ruby>分析<rt>ぶんせき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じっくりチェック）</span>",
+      "<ruby>結果<rt>けっか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（さいごのこたえ）</span>",
+      "<ruby>要因<rt>よういん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（げんいん りゆう）</span>",
+      "<ruby>熟睡<rt>じゅくすい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぐっすりねる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "analyze",
+    "choices": [
+      "<ruby>片付ける<rt>かたづける</rt></ruby>",
+      "<ruby>組み立てる<rt>くみたてる</rt></ruby>",
+      "<ruby>分析する<rt>ぶんせきする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くわしくしらべる）</span>",
+      "<ruby>暗記する<rt>あんきする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぜんぶおぼえる）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "ancient",
+    "choices": [
+      "<ruby>未来の<rt>みらいの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（これからおこること）</span>",
+      "<ruby>最新の<rt>さいしんの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いちばんあたらしい）</span>",
+      "<ruby>大昔の<rt>おおむかしの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きょうりゅう ピラミッドなど）</span>",
+      "<ruby>流行の<rt>りゅうこうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いまにんきの）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "ancestor",
+    "choices": [
+      "<ruby>ご先祖様<rt>ごせんぞさま</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ずっとまえのかぞく）</span>",
+      "<ruby>兄弟<rt>きょうだい</rt></ruby>",
+      "<ruby>後輩<rt>こうはい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あとのがくねんのこ）</span>",
+      "<ruby>宇宙人<rt>うちゅうじん</rt></ruby>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "anniversary",
+    "choices": [
+      "<ruby>記念日<rt>きねんび</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おいわいをするとくべつなひ）</span>",
+      "<ruby>発表会<rt>はっぴょうかい</rt></ruby>",
+      "<ruby>運動会<rt>うんどうかい</rt></ruby>",
+      "<ruby>相談会<rt>そうだんかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こまったことをはなしあうひ）</span>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "amount",
+    "choices": [
+      "<ruby>割合<rt>わりあい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぜんたいのなかでのいちぶのおおきさ）</span>",
+      "<ruby>総量<rt>そうりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぜんぶあわせたりょう）</span>",
+      "<ruby>平均<rt>へいきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぜんぶあわせたまんなかのかず）</span>",
+      "<ruby>最小<rt>さいしょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いちばんすくないりょうのこと）</span>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "apply",
+    "choices": [
+      "<ruby>拒絶する<rt>きょぜつする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いやだといってことわること）</span>",
+      "<ruby>適用する<rt>てきようする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きそくやルールをあてはめる）</span>",
+      "<ruby>無視する<rt>むしする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いないものとしてあつかう）</span>",
+      "<ruby>変更する<rt>へんこうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いままでとかえること）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "atmosphere",
+    "choices": [
+      "<ruby>景色<rt>けしき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（めにみえるまわりのようす）</span>",
+      "<ruby>道具<rt>どうぐ</rt></ruby>",
+      "<ruby>雰囲気<rt>ふんいき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そのばのくうきやかんじ）</span>",
+      "<ruby>天気<rt>てんき</rt></ruby>"
+    ],
+    "answer": 2
+  },
+{
+    "word": "audience",
+    "choices": [
+      "<ruby>出場者<rt>しゅつじょうしゃ</rt></ruby>",
+      "<ruby>観客<rt>かんきゃく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ショーやえいがをみるひと）</span>",
+      "<ruby>審判員<rt>しんぱんいん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ルールをまもっているかみるひと）</span>",
+      "<ruby>案内係<rt>あんないがかり</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "authority",
+    "choices": [
+      "<ruby>権威<rt>けんい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（すごいひとのちから）</span>",
+      "<ruby>初心者<rt>しょしんしゃ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はじめたばかりのひと）</span>",
+      "<ruby>冒険家<rt>ぼうけんか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しらないばしょへいくひと）</span>",
+      "<ruby>発明家<rt>はつめいか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたらしいものをつくるひと）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "automatic",
+    "choices": [
+      "<ruby>手動の<rt>しゅどうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じぶんのてでうごかすこと）</span>",
+      "<ruby>故障中の<rt>こしょうちゅうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわれてうごかないこと）</span>",
+      "<ruby>自動の<rt>じどうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひとりでにうごくこと）</span>",
+      "<ruby>電池式の<rt>でんちしきの</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "avenue",
+    "choices": [
+      "<ruby>大きな通り<rt>おおきなとおり</rt></ruby>",
+      "<ruby>高い建物<rt>たかいたてもの</rt>",
+      "<ruby>静かな公園<rt>しずかなこうえん</rt></ruby>",
+      "<ruby>古いお城<rt>ふるいおしろ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "betray",
+    "choices": [
+      "<ruby>励ます<rt>はげます</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（げんきをあげること）</span>",
+      "<ruby>守る<rt>まもる</rt></ruby>",
+      "<ruby>裏切る<rt>うらぎる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なかまとのやくそくをやぶること）</span>",
+      "<ruby>応援する<rt>おうえんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がんばれということ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "biology",
+    "choices": [
+      "<ruby>歴史<rt>れきし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのできごとをしらべる）</span>",
+      "<ruby>生物学<rt>せいぶつがく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうぶつやしょくぶつなどいきもののべんきょう）</span>",
+      "<ruby>算数<rt>さんすう</rt></ruby>",
+      "<ruby>地理<rt>ちり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ちずやちけいのべんきょう）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "brand",
+    "choices": [
+      "<ruby>値段<rt>ねだん</rt></ruby>",
+      "<ruby>お店<rt>おみせ</rt></ruby>",
+      "<ruby>種類<rt>しゅるい</rt></ruby>",
+      "<ruby>銘柄<rt>めいがら</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ゆうめいなかいしゃやしるし）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "broadcast",
+    "choices": [
+      "<ruby>放送する<rt>ほうそうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（テレビやラジオでおくること）</span>",
+      "<ruby>録画する<rt>ろくがする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ビデオにのこすこと）</span>",
+      "<ruby>出演する<rt>しゅつえんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（テレビやぶたいにでること）</span>",
+      "<ruby>修理する<rt>しゅうりする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわれたところをなおす）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "budget",
+    "choices": [
+      "<ruby>貯金箱<rt>ちょきんばこ</rt></ruby>",
+      "<ruby>予算<rt>よさん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかえるおかねのけいかく）</span>",
+      "<ruby>領収書<rt>りょうしゅうしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おかねをはらったしるしのかみ）</span>",
+      "<ruby>お小遣い帳<rt>おこづかいちょう</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "bury",
+    "choices": [
+      "<ruby>掘り出す<rt>ほりだす</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つちからそとにだすこと）</span>",
+      "<ruby>探す<rt>さがす</rt></ruby>",
+      "<ruby>埋める<rt>うめる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つちのなかにいれること）</span>",
+      "<ruby>飾る<rt>かざる</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "calculate",
+    "choices": [
+      "<ruby>計算する<rt>けいさんする</rt></ruby>",
+      "<ruby>記録する<rt>きろくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ノートにかいておくこと）</span>",
+      "<ruby>発表する<rt>はっぴょうする</rt></ruby>",
+      "<ruby>予想する<rt>よそうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうなるかあたまのなかでかんがえる）</span>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "campaign",
+    "choices": [
+      "<ruby>活動・運動<rt>かつどう・うんどう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでやってひろめること）</span>",
+      "<ruby>散歩<rt>さんぽ</rt></ruby>",
+      "<ruby>読書<rt>どくしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほんをよむこと）</span>",
+      "<ruby>掃除<rt>そうじ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "cancer",
+    "choices": [
+      "<ruby>癌<rt>がん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだのおもいびょうき）</span>",
+      "<ruby>怪我<rt>けが</rt></ruby>",
+      "<ruby>健康<rt>けんこう</rt></ruby>",
+      "<ruby>悩み<rt>なやみ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "candidate",
+    "choices": [
+      "<ruby>応援団長<rt>おうえんだんちょう</rt></ruby>",
+      "<ruby>立候補者<rt>りっこうほしゃ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だいひょうにえらばれたいひと）</span>",
+      "<ruby>審判<rt>しんぱん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かちまけをきめるひと）</span>",
+      "<ruby>観客<rt>かんきゃく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（スポーツたいかいなどでおうえんするひと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "carbon dioxide",
+    "choices": [
+      "<ruby>酸素<rt>さんそ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いきをするときにすってからだにとりいれるもの）</span>",
+      "<ruby>水蒸気<rt>すいじょうき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ゆげなど）</span>",
+      "<ruby>二酸化炭素<rt>にさんかたんそ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はきだすいきやけむりのなかにある）</span>",
+      "<ruby>水素<rt>すいそ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みずをつくるもとになるもの）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "category",
+    "choices": [
+      "<ruby>時間の長さ<rt>じかんのながさ</rt></ruby>",
+      "<ruby>場所の名前<rt>ばしょのなまえ</rt></ruby>",
+      "<ruby>仲間の種類<rt>なかまのしゅるい</rt></ruby>",
+      "<ruby>道具の重さ<rt>どうぐのおもさ</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "cause",
+    "choices": [
+      "<ruby>出来事の理由<rt>できごとのりゆう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そうなってしまった わけ）</span>",
+      "<ruby>将来の夢<rt>しょうらいのゆめ</rt></ruby>",
+      "<ruby>秘密の約束<rt>ひみつのやくそく</rt></ruby>",
+      "<ruby>毎日の習慣<rt>まいにちのしゅうかん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いつもすること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "charity",
+    "choices": [
+      "<ruby>買い物<rt>かいもの</rt></ruby>",
+      "<ruby>慈善活動<rt>じぜんかつどう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こまっているひとをたすけること）</span>",
+      "<ruby>競争<rt>きょうそう</rt></ruby>",
+      "<ruby>発明<rt>はつめい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたらしいアイデアをカタチにする）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "citizen",
+    "choices": [
+      "<ruby>市民<rt>しみん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そのまちにすんでいるひと）</span>",
+      "<ruby>旅人<rt>たびびと</rt></ruby>",
+      "<ruby>お客さん<rt>おきゃくさん</rt></ruby>",
+      "<ruby>家族<rt>かぞく</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "civilization",
+    "choices": [
+      "<ruby>伝説<rt>でんせつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのおはなし）</span>",
+      "<ruby>自然<rt>しぜん</rt></ruby>",
+      "<ruby>文明<rt>ぶんめい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はったつしたくらし べんりなしゃかい）</span>",
+      "<ruby>宇宙<rt>うちゅう</rt></ruby>"
+    ],
+    "answer": 2
+  },
+{
+    "word": "climate",
+    "choices": [
+      "<ruby>気候<rt>きこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そのばしょのてんきやおんど）</span>",
+      "<ruby>景色<rt>けしき</rt></ruby>",
+      "<ruby>地震<rt>じしん</rt></ruby>",
+      "<ruby>洪水<rt>こうずい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あめがたくさんふってみずがあふれる）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "coal",
+    "choices": [
+      "<ruby>石油<rt>せきゆ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じめんのしたにあるあぶら ガソリンのもと）</span>",
+      "<ruby>金塊<rt>きんかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きんのかたまり）</span>",
+      "<ruby>氷山<rt>ひょうざん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うみにうかぶ 大きなこおり）</span>",
+      "<ruby>石炭<rt>せきたん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（もやすとあつくなるくろいいし）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "commercial",
+    "choices": [
+      "<ruby>宣伝の動画<rt>せんでんのどうが</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（テレビなどのコマーシャル）</span>",
+      "<ruby>映画<rt>えいが</rt></ruby>",
+      "<ruby>ニュース番組<rt>ニュースばんぐみ</rt></ruby>",
+      "<ruby>天気予報<rt>てんきよほう</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "community",
+    "choices": [
+      "<ruby>部活<rt>ぶかつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がっこうのクラブかつどう）</span>",
+      "<ruby>共同体<rt>きょうどうたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（まわりのひととつくるグループ）</span>",
+      "<ruby>外国<rt>がいこく</rt></ruby>",
+      "<ruby>秘密基地<rt>ひみつきち</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "construction",
+    "choices": [
+      "<ruby>建設・工事<rt>けんせつ・こうじ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みちやビルなどをつくる）</span>",
+      "<ruby>破壊<rt>はかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわす）</span>",
+      "<ruby>掃除<rt>そうじ</rt></ruby>",
+      "<ruby>運転<rt>うんてん</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "corporation",
+    "choices": [
+      "<ruby>企業<rt>きぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おおきなかいしゃ）</span>",
+      "公園<rt>こうえん</rt></ruby>",
+      "<ruby>建物<rt>たてもの</rt></ruby>",
+      "<ruby>お城<rt>おしろ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "council",
+    "choices": [
+      "<ruby>運動会<rt>うんどうかい</rt></ruby>",
+      "<ruby>発表会<rt>はっぴょうかい</rt></ruby>",
+      "<ruby>相談会<rt>そうだんかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなではなしあうあつまり）</span>",
+      "<ruby>誕生会<rt>たんじょうかい</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "court",
+    "choices": [
+      "<ruby>遊園地<rt>ゆうえんち</rt></ruby>",
+      "<ruby>裁判所<rt>さいばんしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ただしいかどうかきめるばしょ）</span>",
+      "<ruby>市役所<rt>しやくしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（まちのしごとをしているところ）</span>",
+      "<ruby>博物館<rt>はくぶつかん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ふるいものやめずらしいものをみてまなぶところ）</span>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "crime",
+    "choices": [
+      "<ruby>登山<rt>とざん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やまのぼり）</span>",
+      "<ruby>事件<rt>じけん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こまったできごと）</span>",
+      "<ruby>病気<rt>びょうき</rt></ruby>",
+      "<ruby>犯罪<rt>はんざい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きまりをやぶるわるいこと）</span>"
+    ],
+    "answer": 3
+  },
+{
+    "word": "crop",
+    "choices": [
+      "<ruby>農作物<rt>のうさくぶつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はたけでつくるやさいやくだものなど）</span>",
+      "<ruby>調理道具<rt>ちょうりどうぐ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なべやフライパンなど）</span>",
+      "<ruby>機械<rt>きかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをつくるためのどうぐ）</span>",
+      "<ruby>商品<rt>しょうひん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うるためにおいてあるもの）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "culture",
+    "choices": [
+      "<ruby>文化<rt>ぶんか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしからつたわるせいかつのしかた）</span>",
+      "<ruby>自然<rt>しぜん</rt></ruby>",
+      "<ruby>技術<rt>ぎじゅつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをつくるためのすごいちから）</span>",
+      "<ruby>未来<rt>みらい</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "current",
+    "choices": [
+      "<ruby>昔の<rt>むかしの</rt></ruby>",
+      "<ruby>未来の<rt>みらいの</rt></ruby>",
+      "<ruby>今の<rt>いまの</rt></ruby>",
+      "<ruby>永遠の<rt>えいえんの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ずっとおわらないこと）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "decade",
+    "choices": [
+      "<ruby>一週間<rt>いっしゅうかん</rt></ruby>",
+      "<ruby>一ヶ月間<rt>いっかげつかん</rt></ruby>",
+      "<ruby>一年間<rt>いちねんかん</rt></ruby>",
+      "<ruby>十年間<rt>じゅうねんかん</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "commit",
+    "choices": [
+      "<ruby>約束する<rt>やくそくする</rt></ruby>",
+      "<ruby>忘れる<rt>わすれる</rt></ruby>",
+      "<ruby>反対する<rt>はんたいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いやだということ）</span>",
+      "<ruby>休憩する<rt>きゅうけいする</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "confine",
+    "choices": [
+      "<ruby>広げる<rt>ひろげる</rt></ruby>",
+      "<ruby>制限する・閉じ込める<rt>せいげんする・とじこめる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うごきがとれないようにする）</span>",
+      "<ruby>追い出す<rt>おいだす</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そとへだしてしまうこと）</span>",
+      "<ruby>混ぜ合わせる<rt>まぜあわせる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（バラバラのものをひとつにする）</span>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "conflict",
+    "choices": [
+      "<ruby>平和<rt>へいわ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なかよし けんかしない）</span",
+      "<ruby>協力<rt>きょうりょく</rt></ruby>",
+      "<ruby>衝突<rt>しょうとつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いけんがわかれてあらそう）</span>",
+      "<ruby>合意<rt>ごうい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでさんせいすること）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "consequence",
+    "choices": [
+      "<ruby>始まり<rt>はじまり</rt></ruby>",
+      "<ruby>結果<rt>けっか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（さいごにどうなったか）</span>",
+      "<ruby>方法<rt>ほうほう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やりかたのこと）</span>",
+      "<ruby>目的<rt>もくてき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（めざしていること）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "consult",
+    "choices": [
+      "<ruby>相談する<rt>そうだんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いけんやヒントをきく）</span>",
+      "<ruby>命令する<rt>めいれいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やりなさいということ）</span>",
+      "<ruby>隠し事をする<rt>かくしごとをする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だれにもいわないでおく）</span>",
+      "<ruby>無視する<rt>むしする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いないものとしてあつかう）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "contract",
+    "choices": [
+      "<ruby>文書<rt>ぶんしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（たいせつなかみ）</span>",
+      "<ruby>旅行<rt>りょこう</rt></ruby>",
+      "<ruby>契約<rt>けいやく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（たいせつなきまりややくそく）</span>",
+      "<ruby>発見<rt>はっけん</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "contribute",
+    "choices": [
+      "<ruby>役立つ<rt>やくだつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ちからに なったりすること）</span>",
+      "<ruby>邪魔をする<rt>じゃまをする</rt></ruby>",
+      "<ruby>一人で遊ぶ<rt>ひとりであそぶ</rt></ruby>",
+      "<ruby>嘘をつく<rt>うそをつく</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "criticism",
+    "choices": [
+      "<ruby>批判・非難<rt>ひはん・ひなん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きびしいいけん）</span>",
+      "<ruby>応援<rt>おうえん</rt></ruby>",
+      "<ruby>会議<rt>かいぎ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなであつまってはなしあうこと）</span>",
+      "<ruby>思い出<rt>おもいで</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "debate",
+    "choices": [
+      "<ruby>読書<rt>どくしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほんをよむこと）</span>",
+      "<ruby>議論<rt>ぎろん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いけんをだしあってはなしあうこと）</span>",
+      "<ruby>遠足<rt>えんそく</rt></ruby>",
+      "<ruby>相談<rt>ひみつのそうだん</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "define",
+    "choices": [
+      "<ruby>隠す<rt>隠す</rt></ruby>",
+      "<ruby>忘れる<rt>わすれる</rt></ruby>",
+      "<ruby>定義する<rt>ていぎする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いみをきめる）</span>",
+      "<ruby>捜索する<rt>そうさくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あちこちさがす）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "degree",
+    "choices": [
+      "<ruby>長さの単位<rt>ながさのたんい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（メートルやセンチなど）</span>",
+      "<ruby>重さの単位<rt>おもさのたんい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（キログラムやグラムなど）</span>",
+      "<ruby>速さの単位<rt>はやさのたんい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どれくらいスピードがでるか）</span>",
+      "<ruby>温度の単位<rt>おんどのたんい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きおんやかくどなどをしめすメモリ）</span>"
+    ],
+    "answer": 3
+  },
+   {
+    "word": "demonstrate",
+    "choices": [
+      "<ruby>隠れて待つ<rt>かくれたまつ</rt></ruby>",
+      "<ruby>やって見せる<rt>やってみせる</rt></ruby>",
+      "<ruby>嘘をつく<rt>うそをつく</rt></ruby>",
+      "<ruby>お祈りする<rt>おいのりする</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "deny",
+    "choices": [
+      "<ruby>認める<rt>みとめる</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そのとおりだということ）</span>",
+      "<ruby>否定する<rt>ひていする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やっていない ちがうという）</span>",
+      "<ruby>協力する<rt>きょうりょくする</rt></ruby>",
+      "<ruby>応援する<rt>おうえんする</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "device",
+    "choices": [
+      "<ruby>装置・機械<rt>そうち・きかい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（スマホやパソコンなどのべんりなどうぐ）</span>",
+      "<ruby>建物<rt>たてもの</rt></ruby>",
+      "<ruby>土地<rt>とち</rt></ruby>",
+      "<ruby>荷物<rt>にもつ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "fuel",
+    "choices": [
+      "<ruby>飲み物<rt>のみもの</rt></ruby>",
+      "<ruby>食べ物<rt>たべもの</rt></ruby>",
+      "<ruby>燃料<rt>ねんりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ガスやガソリンなど）</span>",
+      "<ruby>肥料<rt>ひりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しょくぶつをおおきくするためのえいよう）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "fund",
+    "choices": [
+      "<ruby>探索<rt>たんさく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（さがしまわる）</span>",
+      "<ruby>設立<rt>せつりつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたらしくつくる）</span>",
+      "<ruby>資金<rt>しきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なにかのためにつかうたいせつなおかね）</span>",
+      "<ruby>土地<rt>とち</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "gender",
+    "choices": [
+      "<ruby>健康<rt>けんこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだがげんきなこと）</span>",
+      "<ruby>精神<rt>せいしん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こころのちから）</span>",
+      "<ruby>性別<rt>せいべつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おとこのひと おんなのひと）</span>",
+      "<ruby>頭脳<rt>ずのう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かしこいあたま のうみそ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "geography",
+    "choices": [
+      "<ruby>地理<rt>ちり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（せかいのくにやちずのこと）</span>",
+      "<ruby>算数<rt>さんすう</rt></ruby>",
+      "<ruby>歴史<rt>れきし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのできごとをまなぶ）</span>",
+      "<ruby>音楽<rt>おんがく</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "gravity",
+    "choices": [
+      "<ruby>浮力<rt>ふりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みずがものをもちあげるちから）</span>",
+      "<ruby>地球<rt>ちきゅう</rt></ruby>",
+      "<ruby>重力<rt>じゅうりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものがじめんにひっぱられるちから）</span>",
+      "<ruby>隕石<rt>いんせき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うちゅうのいし）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "harm",
+    "choices": [
+      "<ruby>害<rt>がい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（わるいえいきょう）</span>",
+      "<ruby>親切<rt>しんせつ</rt></ruby>",
+      "<ruby>汚染<rt>おせん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（よごれること）</span>",
+      "<ruby>怪我<rt>けが</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "harvest",
+    "choices": [
+      "<ruby>種まき<rt>たねまき</rt></ruby>",
+      "<ruby>農業<rt>のうぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やさいやおこめづくり）</span>",
+      "<ruby>収穫<rt>しゅうかく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そだったやさいなどをとる）</span>",
+      "<ruby>伐採<rt>ばっさい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きやもりをきること）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "healthcare",
+    "choices": [
+      "<ruby>医療<rt>いりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（びょうきをなおすびょういんのしごと）</span>",
+      "<ruby>健康<rt>けんこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだがげんきなこと）</span>",
+      "<ruby>病院<rt>びょういん</rt></ruby><br>",
+      "<ruby>精神<rt>せいしん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こころのちから）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "hire",
+    "choices": [
+      "<ruby>応募する<rt>おうぼする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はいりたいという もうしこむ）</span>",
+      "<ruby>雇う<rt>やとう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">(おかねをはらってしごとをたのむ)</span>",
+      "<ruby>働く<rt>はたらく</rt></ruby>",
+      "<ruby>与える<rt>あたえる</rt></ruby>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "honor",
+    "choices": [
+      "<ruby>失敗<rt>しっぱい</rt></ruby>",
+      "<ruby>優勝<rt>ゆうしよう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いちばんになる）</span>",
+      "<ruby>名誉<rt>めいよ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（すばらしいとほめられること）</span>",
+      "<ruby>歴史<rt>れきし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのできごとをまなぶ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "humidity",
+    "choices": [
+      "<ruby>温度<rt>おんど</rt></ruby>",
+      "<ruby>湿度<rt>しつど</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くうきのしめりけのぐあい）</span>",
+      "<ruby>風速<rt>ふうそく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かぜがふくスピードのこと）</span>",
+      "<ruby>気圧<rt>きあつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くうきがおしてくるちからのこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "impact",
+    "choices": [
+      "<ruby>影響<rt>えいきょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おおきなへんかをあたえること）</span>",
+      "<ruby>結果<rt>けっか</rt></ruby>",
+      "<ruby>変化<rt>へんか</rt></ruby>",
+      "<ruby>被害<rt>ひがい</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "import",
+    "choices": [
+      "<ruby>売る<rt>うる</rt></ruby>",
+      "<ruby>買う<rt>かう</rt></ruby>",
+      "<ruby>輸出する<rt>ゆしゅつする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がいこくにものをうる）</span>",
+      "<ruby>輸入する<rt>ゆにゅうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がいこくのものをかいいれる）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "impulse",
+    "choices": [
+      "<ruby>我慢<rt>がまん</rt></ruby>",
+      "<ruby>衝動<rt>しょうどう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おもわずやりたくなるきもち）</span>",
+      "<ruby>反省<rt>はんせい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（わるかったなとおもうこと）</span>",
+      "<ruby>期待<rt>きたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうなったらいいなとおもうこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "income",
+    "choices": [
+      "<ruby>貯金<rt>ちょきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おかねをためること）</span>",
+      "<ruby>収入<rt>しゅうにゅう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しごとをしてもらえるおかね）</span>",
+      "<ruby>借金<rt>しゃっきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かえさなければいけないおかね）</span>",
+      "<ruby>寄付<rt>きふ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こまっているひとにおくるおかね）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "industry",
+    "choices": [
+      "<ruby>産業<rt>さんぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうじょうやものづくりのしごと）</span>",
+      "<ruby>工場<rt>こうじょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをつくるところ）</span>",
+      "<ruby>農業<rt>のうぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やさいやおこめづくり）</span>",
+      "<ruby>勉強<rt>べんきょう</rt></ruby>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "influence",
+    "choices": [
+      "<ruby>邪魔をする<rt>じゃまをする</rt></ruby>",
+      "<ruby>無視をする<rt>むしをする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いないものとしてあつかう）</span>",
+      "<ruby>影響を及ぼす<rt>えいきょうをおよぼす</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひとをうごかしたりかえさせたりする）</span>",
+      "<ruby>秘密にする<rt>ひみつにする</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "injure",
+    "choices": [
+      "<ruby>傷つける<rt>きずつける</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだにけがをさせる）</span>",
+      "<ruby>守る<rt>まもる</rt></ruby>",
+      "<ruby>治療する<rt>ちりょうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（びょうきやけがをなおす）</span>",
+      "<ruby>応援する<rt>おうえんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がんばれーという）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "insurance",
+    "choices": [
+      "<ruby>契約<rt>けいやく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あいてとのやくそく）</span>",
+      "<ruby>保険<rt>ほけん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（もしものこまったときにたすけてくれる）</span>",
+      "<ruby>制度<rt>せいど</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しくみやきまり）</span>",
+      "<ruby>税金<rt>ぜいきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くにをささえるためにはらうおかね）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "invest",
+    "choices": [
+      "<ruby>投資する<rt>とうしする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しょうらいのためにおかねをつかう）</span>",
+      "<ruby>浪費する<rt>ろうひする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むだにおかねをつかってしまう）</span>",
+      "<ruby>貯金する<rt>ちょきんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おかねをためる）</span>",
+      "<ruby>節約する<rt>せつやくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むだづかいしない）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "investigate",
+    "choices": [
+      "<ruby>分析する<rt>ぶんせきする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（よくしらべる）</span>",
+      "<ruby>確認する<rt>かくにんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あっているかみる）</span>",
+      "<ruby>調査する<rt>ちょうさする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くわしくしらべて たしかめる）</span>",
+      "<ruby>報告する<rt>ほうこくする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つたえる）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "issue",
+    "choices": [
+      "<ruby>課題<rt>かだい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（もんだい こまりごと）</span>",
+      "<ruby>理由<rt>りゆう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうしてか）</span>",
+      "<ruby>提案<rt>ていあん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうしたら？）</span>",
+      "<ruby>問題<rt>もんだい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなでかんがえるべきだいじなこと）</span>"
+    ],
+    "answer": 3
+  },
+{
+    "word": "irritate",
+    "choices": [
+      "<ruby>感動<rt>かんどう</rt></ruby>させる<br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こころをじーんとさせること）</span>",
+      "いらだたせる<br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おこらせてイライラさせる）</span>",
+      "<ruby>安心<rt>あんしん</rt></ruby>させる",
+      "<ruby>驚<rt>おどろ</rt></ruby>かせる"
+    ],
+    "answer": 1
+  },
+{
+  "word": "jail",
+  "choices": [
+    "<ruby>病院<rt>びょういん</rt></ruby>",
+    "<ruby>警察署<rt>けいさつしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（けいさつかんがいるところ）</span>",
+    "<ruby>刑務所<rt>けいむしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（わるいことをしたひとがはいるところ）</span>",
+    "<ruby>裁判所<rt>さいばんしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ただしいかどうかきめるばしょ）</span>"
+  ],
+  "answer": 2
+},
+{
+  "word": "justice",
+  "choices": [
+    "<ruby>正義<rt>せいぎ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ただしいこと）</span>",
+    "<ruby>責任<rt>せきにん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やるべきこと）</span>",
+    "<ruby>自由<rt>じゆう</rt></ruby>",
+    "<ruby>権利<rt>けんり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（してもいいこと）</span>"
+  ],
+  "answer": 0
+}, 
+{
+  "word": "labor",
+  "choices": [
+    "<ruby>休憩<rt>きゅうけい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひとやすみすること）</span>",
+    "<ruby>努力<rt>どりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がんばること）</span>",
+    "<ruby>労働<rt>ろうどう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はたらくこと）</span>",
+    "<ruby>運動<rt>うんどう</rt></ruby>"
+  ],
+  "answer": 2
+},
+  {
+    "word": "land",
+    "choices": [
+      "<ruby>土地<rt>とち</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じめんやばしょのこと）</span>",
+      "<ruby>空気<rt>くうき</rt></ruby>",
+      "<ruby>海洋<rt>かいよう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひろくてふかいうみのこと）</span>",
+      "<ruby>森林<rt>しんりん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きがたくさんはえているところ）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "law",
+    "choices": [
+      "<ruby>歴史<rt>れきし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのできごとをべんきょうする）</span>",
+      "<ruby>法律<rt>ほうりつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しゃかいのまもらなければならないきまり）</span>",
+      "<ruby>習慣<rt>しゅうかん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いつもしていること）</span>",
+      "<ruby>道徳<rt>どうとく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ただしいこころのありかたのこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "layer",
+    "choices": [
+      "<ruby>中心<rt>ちゅうしん</rt></ruby>",
+      "<ruby>隙間<rt>すきま</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものともののあいだのこと）</span>",
+      "<ruby>表面<rt>ひょうめん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いちばんそとがわのみえるところ）</span>",
+      "<ruby>層<rt>そう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かさなっているかさなりのこと）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "league",
+    "choices": [
+      "<ruby>連盟<rt>れんめい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おなじもくてきをもったなかまのグループ）</span>",
+      "<ruby>道具<rt>どうぐ</rt></ruby>",
+      "<ruby>学校<rt>がっこう</rt></ruby>",
+      "<ruby>近所<rt>きんじょ</rt></ruby>"
+    ],
+    "answer": 0
+  },
+{
+  "word": "legal",
+  "choices": [
+    "<ruby>法律上の<rt>ほうりつじょうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほうりつでは ルールのうえでは）</span>",
+    "<ruby>経済的な<rt>けいざいてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おかねやしごとにかんけいする）</span>",
+    "<ruby>政治的な<rt>せいじてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くにのルールやせいふにかんけいする）</span>",
+    "<ruby>医学的な<rt>いがくてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（びょうきやけんこうにかんけいする）</span>"
+  ],
+  "answer": 0
+},
+{
+  "word": "lecture",
+  "choices": [
+    "<ruby>発表<rt>はっぴょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなのまえではなすこと）</span>",
+    "<ruby>授業<rt>じゅぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がっこうでべんきょうすること）</span>",
+    "<ruby>講義<rt>こうぎ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（せんせいのおはなしを きいてまなぶこと）</span>",
+    "<ruby>実験<rt>じっけん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ためしてしらべること）</span>"
+  ],
+  "answer": 2
+},
+  {
+    "word": "liberty",
+    "choices": [
+      "<ruby>安全<rt>あんぜん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あぶないことが なくてあんしん）</span>",
+      "<ruby>健康<rt>けんこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだがじょうぶで げんきなこと）</span>",
+      "<ruby>幸運<rt>こううん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いいことがあってラッキー）</span>",
+      "<ruby>自由<rt>じゆう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しばられずにじぶんできめられる）</span>"
+    ],
+    "answer": 3
+  },
+{
+  "word": "literature",
+  "choices": [
+    "<ruby>文学<rt>ぶんがく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものがたりやしなどのさくひん）</span>",
+    "<ruby>歴史<rt>れきし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしのできごと）</span>",
+    "<ruby>科学<rt>かがく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じっけん ふしぎをまなぶこと）</span>",
+    "<ruby>文化<rt>ぶんか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くらしやならわし）</span>"
+  ],
+  "answer": 0
+}, 
+  {
+    "word": "loan",
+    "choices": [
+      "<ruby>贈り物<rt>おくりもの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だれかにあげるプレゼント）</span>",
+      "<ruby>借金<rt>しゃっきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひとからかりているおかね かえさなければいけないおかね）</span>",
+      "<ruby>貯金<rt>ちょきん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかわずにためておくおかね）</span>",
+      "<ruby>会費<rt>かいひ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（グループにはいるためのおかね）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "loss",
+    "choices": [
+      "<ruby>成功<rt>せいこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（うまくいってやったー！とおもうこと）</span>",
+      "<ruby>発見<rt>はっけん</rt></ruby>",
+      "<ruby>勝利<rt>しょうり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しあいにかっていちばんになる）</span>",
+      "<ruby>損失<rt>そんしつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なくしてそんをしてしまうこと）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "luxury",
+    "choices": [
+      "<ruby>贅沢<rt>ぜいたく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ふだんよりおかねがかかるごうかなこと）</span>",
+      "<ruby>普通<rt>ふつう</rt></ruby>",
+      "<ruby>節約<rt>せつやく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むだをなくしてたいせつにつかうこと）</span>",
+      "<ruby>不便<rt>ふべん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかいにくくてこまること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "major",
+    "choices": [
+      "<ruby>小さな<rt>ちいさな</rt></ruby>",
+      "<ruby>珍しい<rt>めずらしい</rt></ruby>",
+      "<ruby>主要な<rt>しゅような</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いちばんだいじでちゅうしんとなるような）</span>",
+      "<ruby>最近の<rt>さいきんの</rt></ruby>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "majority",
+    "choices": [
+      "<ruby>多数派<rt>たすうは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（はんぶんよりおおいひとたちのいけん）</span>",
+      "<ruby>少数派<rt>しょうすうは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（にんずうがすくない人たちのいけん）</span>",
+      "<ruby>反対派<rt>はんたいは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いやだという人たちのいけん）</span>",
+      "<ruby>賛成派<rt>さんせいは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いいよという人たちのいけん）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "manufacturer",
+    "choices": [
+      "<ruby>お店<rt>おみせ</rt></ruby>",
+      "<ruby>修理屋<rt>しゅうりや</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわれたものをなおしてくれる）</span>",
+      "<ruby>農家<rt>のうか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やさいおこめをつくっている）</span>",
+      "<ruby>製造業者<rt>せいぞうぎょうしゃ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうじょうでものをつくっているかいしゃ）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "material",
+    "choices": [
+      "<ruby>材料<rt>ざいりょう</rt></ruby>",
+      "<ruby>ゴミ<rt>ごみ</rt></ruby>",
+      "<ruby>景色<rt>けしき</rt></ruby>",
+      "<ruby>空気<rt>くうき</rt></ruby>"
+    ],
+    "answer": 0
+  },
+{
+    "word": "microscope",
+    "choices": [
+      "<ruby>望遠鏡<rt>ぼうえんきょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（とおくのほしなどをみるどうぐ）</span>",
+      "<ruby>顕微鏡<rt>けんびきょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ちいさなびせいぶつなどをみるどうぐ）</span>",
+      "<ruby>虫眼鏡<rt>むしめがね</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（てでもっておおきくみるガラス）</span>",
+      "<ruby>万華鏡<rt>まんげきょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（もようがキラキラみえるおもちゃ）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "military",
+    "choices": [
+      "<ruby>警察<rt>けいさつ</rt></ruby>",
+      "<ruby>消防<rt>しょうぼう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かじをけしたりたすけたりする）</span>",
+      "<ruby>軍隊<rt>ぐんたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くにまもるためのそしき）</span>",
+      "<ruby>役所<rt>やくしょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（まちのしごとをするところ）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "minority",
+    "choices": [
+      "<ruby>少数派<rt>しょうすうは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（にんずうが すくないほうのグループ）</span>",
+      "<ruby>多数派<rt>たすうは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（にんずうがたくさんいるグループ）</span>",
+      "<ruby>反対派<rt>はんたいは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ダメだとはんたいしているひとたち）</span>",
+      "<ruby>賛成派<rt>さんせいは</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いいよとさんせいしているひとたち）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "modern",
+    "choices": [
+      "<ruby>伝統的な<rt>でんとうてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（むかしからつづいている）</span>",
+      "<ruby>歴史的な<rt>れきしてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おおむかしのできごとのような）</span>",
+      "<ruby>現代的な<rt>げんだいてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いまのじだいらしいあたらしいかんじ）</span>",
+      "<ruby>未来的な<rt>みらいてきな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（これからさきのせかいのような）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "nation",
+    "choices": [
+      "<ruby>国家<rt>こっか</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くに）</span>",
+      "<ruby>都市<rt>とし</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ビルがあるおおきなまち）</span>",
+      "<ruby>地球<rt>ちきゅう</rt></ruby>",
+      "<ruby>故郷<rt>こきょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じぶんがうまれたばしょ）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "nationality",
+    "choices": [
+      "<ruby>年齢<rt>ねんれい</rt></ruby>",
+      "<ruby>職業<rt>しょくぎょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しごと）</span>",
+      "<ruby>性格<rt>せいかく</rt></ruby>",
+      "<ruby>国籍<rt>こくせき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どこのくにのひとか）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "natural",
+    "choices": [
+      "<ruby>自然の<rt>しぜんの</rt></ruby>",
+      "<ruby>人工の<rt>じんこうの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（にんげんがちえをつかってつくったもの）</span>",
+      "<ruby>不思議な<rt>ふしぎな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうしてかせつめいできないこと）</span>",
+      "<ruby>危険な<rt>きけんな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あぶないこと）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "nature",
+    "choices": [
+      "<ruby>道具<rt>どうぐ</rt></ruby>",
+      "<ruby>機械<rt>きかい</rt></ruby>",
+      "<ruby>建物<rt>たてもの</rt></ruby>",
+      "<ruby>自然<rt>しぜん</rt></ruby>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "navy",
+    "choices": [
+      "<ruby>陸軍<rt>りくぐん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じめんのうえでくにをまもるぶたい）</span>",
+      "<ruby>海軍<rt>かいぐん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ふねにのってうみをまもるぶたい）</span>",
+      "<ruby>空軍<rt>くうぐん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ひこうきにのってそらをまもるぶたい）</span>",
+      "<ruby>守備隊<rt>しゅびたい</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おしろやきちをまもるぶたい）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "official",
+    "choices": [
+      "<ruby>内緒の<rt>ないしょの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（だれにもいわない）</span>",
+      "<ruby>適当な<rt>てきとうな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（いいかげんな）</span>",
+      "<ruby>公式の<rt>こうしきの</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなにだしているきまったこと）</span>",
+      "<ruby>勝手な<rt>かってな</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じぶんだけできめてしまうこと）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "organization",
+    "choices": [
+      "<ruby>組織<rt>そしき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みんなではたらくためのチーム）</span>",
+      "<ruby>個人<rt>こじん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（チームではなくじぶんひとりのこと）</span>",
+      "<ruby>遊び場<rt>あそびば</rt></ruby>",
+      "<ruby>休憩所<rt>きゅうけいじょ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかれたときにやすむところ）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "policy",
+    "choices": [
+      "<ruby>希望<rt>きぼう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（かなえたいこと）</span>",
+      "<ruby>政治<rt>せいじ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くにのしごと）</span>",
+      "<ruby>方針<rt>ほうしん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（どうやってすすめるかのけいかく）</span>",
+      "<ruby>偶然<rt>ぐうぜん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（たまたまおきたできごと）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "pollution",
+    "choices": [
+      "<ruby>清掃<rt>せいそう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（きれいにそうじすること）</span>",
+      "<ruby>汚染<rt>おせん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くうきやみずがよごれてしまうこと）</span>",
+      "<ruby>保護<rt>ほご</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわれないようにまもること）</span>",
+      "<ruby>循環<rt>じゅんかん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ぐるぐるとまわってつかうこと）</span>"
+    ],
+    "answer": 1
+  },
+{
+    "word": "population",
+    "choices": [
+      "<ruby>面積<rt>めんせき</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（とちのひろさのこと）</span>",
+      "<ruby>人口<rt>じんこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（そこにすんでいるひとのかず）</span>",
+      "<ruby>気温<rt>きおん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（くうきあつさやさむさ）</span>",
+      "<ruby>距離<rt>きょり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（みちのりやながさのこと）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "possess",
+    "choices": [
+      "<ruby>所有する<rt>しょゆうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じぶんのものとしてもっている）</span>",
+      "<ruby>破壊する<rt>はかいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをこわしてしまうこと）</span>",
+      "<ruby>修理する<rt>しゅうりする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こわれたところをなおすこと）</span>",
+      "<ruby>交換する<rt>こうかんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ほかのものととりかえること）</span>"
+    ],
+    "answer": 0
+  },
+  {
+    "word": "poverty",
+    "choices": [
+      "<ruby>幸福<rt>こうふく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（しあわせでたのしいきもち）</span>",
+      "<ruby>健康<rt>けんこう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（からだがげんきでじょうぶなこと）</span>",
+      "<ruby>平和<rt>へいわ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あらそいがなくてあんしんなこと）</span>",
+      "<ruby>貧困<rt>ひんこん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（とてもまずしくてこまること）</span>"
+    ],
+    "answer": 3
+  },
+  {
+    "word": "pressure",
+    "choices": [
+      "<ruby>重力<rt>じゅうりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ちきゅうのちゅうしんにひっぱられるちから）</span>",
+      "<ruby>磁力<rt>じりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（じしゃくでくっつくちから）</span>",
+      "<ruby>圧力<rt>あつりょく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おさえつけるつよいちから）</span>",
+      "<ruby>摩擦<rt>まさつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こすれあっておきるちから）</span>"
+    ],
+    "answer": 2
+  },
+{
+  "word": "principal",
+  "choices": [
+    "<ruby>校長・責任者<rt>こうちょう・せきにんしゃ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がっこうのいちばんえらいせんせい）</span>",
+    "<ruby>先生<rt>せんせい</rt></ruby>",
+    "<ruby>生徒<rt>せいと</rt></ruby>",
+    "<ruby>保健室<rt>ほけんしつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（けがやびょうきのときにいくところ）</span>"
+  ],
+  "answer": 0
+},
+
+  {
+    "word": "principle",
+    "choices": [
+      "<ruby>技術<rt>ぎじゅつ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをつくるうまいやりかた）</span>",
+      "<ruby>原理<rt>げんり</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものごとがうごくしくみのきまり）</span>",
+      "<ruby>記憶<rt>きおく</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたまのなかにおぼえていること）</span>",
+      "<ruby>想像<rt>そうぞう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（あたまのなかでかんがえること）</span>"
+    ],
+    "answer": 1
+  },
+  {
+    "word": "produce",
+    "choices": [
+      "<ruby>消費する<rt>しょうひする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（つかってなくしてしまうこと）</span>",
+      "<ruby>輸入する<rt>ゆにゅうする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（がいこくのものをかいいれる）</span>",
+      "<ruby>生産する<rt>せいさんする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうじょうやはたけでものをつくりだす）</span>",
+      "<ruby>販売する<rt>はんばいする</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（おみせでしょうひんをうること）</span>"
+    ],
+    "answer": 2
+  },
+  {
+    "word": "product",
+    "choices": [
+      "<ruby>製品<rt>せいひん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（こうじょうなどでつくられたしなもの）</span>",
+      "<ruby>道具<rt>どうぐ</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（なにかをするためにつかうもの）</span>",
+      "<ruby>材料<rt>ざいりょう</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（ものをつくるもとになるもの）</span>",
+      "<ruby>資源<rt>しげん</rt></ruby><br><span class=\"text-sm md:text-base text-slate-500 font-normal mt-1\">（やくにたつてんねんのちからやもののこと）</span>"
+    ],
+    "answer": 0
+  }
+
+];
+
+
+const allWordData = [
+    ...lv1.map(w => ({ ...w, level: 1 })),
+    ...lv2.map(w => ({ ...w, level: 2 })),
+    ...lv3.map(w => ({ ...w, level: 3 }))
+];
+
+const evolutionData = {
+"0": [
+        { req: 0, emoji: "🥚", name: "ほのおのたまご", bg: "bg-red-50", border: "border-red-200" },
+        { req: 50, emoji: "🔥", name: "ちいさなひのこ", bg: "bg-red-50", border: "border-red-200" },
+        { req: 150, emoji: "🐣", name: "ヒヨッポ", bg: "bg-red-50", border: "border-red-200" },
+        { req: 200, emoji: "🐥", name: "フレアバード", bg: "bg-red-50", border: "border-red-200" },
+        { req: 250, emoji: "🐦‍🔥", name: "フェニックス卿", bg: "bg-red-50", border: "border-red-200" },
+        { req: 300, emoji: "🦎", name: "ファイヤリザード", bg: "bg-red-50", border: "border-red-200" },
+        { req: 350, emoji: "🦕", name: "ブラキオサウルス", bg: "bg-red-50", border: "border-red-200" },
+        { req: 400, emoji: "🦖", name: "ダイナソーキング", bg: "bg-red-50", border: "border-red-200" }
+    ],
+"1": [
+        { req: 0, emoji: "🥚", name: "みずのたまご", bg: "bg-blue-50", border: "border-blue-200" },
+        { req: 50, emoji: "💧", name: "プルルン", bg: "bg-blue-50", border: "border-blue-200" },
+        { req: 150, emoji: "🪼", name: "クラゲん", bg: "bg-blue-50", border: "border-blue-200" }, 
+        { req: 200, emoji: "🐠", name: "トロピカルン", bg: "bg-blue-50", border: "border-blue-200" },
+        { req: 250, emoji: "🐟", name: "フィッシュぼうや", bg: "bg-blue-50", border: "border-blue-200" },
+        { req: 300, emoji: "🐬", name: "ドルフィン大佐", bg: "bg-blue-50", border: "border-blue-200" },
+        { req: 350, emoji: "🐋", name: "ホエールキング", bg: "bg-blue-50", border: "border-blue-200" }, 
+        { req: 400, emoji: "🐉", name: "カイリュウ将軍", bg: "bg-blue-50", border: "border-blue-200" }
+    ],
+"2": [
+        { req: 0, emoji: "🥚", name: "もりのたまご", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 50, emoji: "🌱", name: "フシギナハッパ", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 150, emoji: "🌻", name: "サンフラワー", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 200, emoji: "🐿️", name: "もりチップス", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 250, emoji: "🦝", name: "ポンタヌキ", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 300, emoji: "🦉", name: "フォレストホロウ", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 350, emoji: "🌲", name: "ツリーキング", bg: "bg-emerald-100/70", border: "border-emerald-200" },
+        { req: 400, emoji: "🦌", name: "森の守護神", bg: "bg-emerald-100/70", border: "border-emerald-200" }
+    ]
+};
+
+    let allUsersData = JSON.parse(localStorage.getItem('furiEigoAllUsers')) || {};
+    let currentUser = null;
+    let currentSessionWords = [];
+    let currentQuestionIndex = 0;
+    let currentScore = 0;
+    let isAnswering = false;
+    const appContainer = document.getElementById('app');
+
+    function saveData() { localStorage.setItem('furiEigoAllUsers', JSON.stringify(allUsersData)); }
+    function getUserData() { return allUsersData[currentUser]; }
+    function shuffleArray(array) {
+        let newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    }
+    function getCurrentMonster() {
+        const uData = getUserData();
+        const tree = evolutionData[uData.eggType];
+        let currentStage = tree[0];
+        for (let stage of tree) { if (uData.totalCorrect >= stage.req) currentStage = stage; }
+        return currentStage;
+    }
+
+function showUserSelectionScreen() {
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-app-purple relative overflow-hidden";
+    let userListHtml = '';
+    const userNames = Object.keys(allUsersData);
+    if (userNames.length > 0) {
+        userNames.forEach(name => {
+            const uData = allUsersData[name];
+            userListHtml += `
+                <div class="relative w-full mb-4 transform transition active:scale-95">
+                    <button onclick="loginUser('${name}')" class="w-full text-center p-5 bg-teal-50 rounded-2xl border-2 border-b-4 border-teal-100 hover:bg-teal-100/50 hover:border-teal-300 font-bold shadow-md">
+                        <span class="block text-2xl font-bold text-slate-600 mb-1">${name}</span>
+                        <span class="block text-sm font-bold text-teal-600">レベル: ${uData.totalCorrect}</span>
+                    </button>
+                    <button onclick="deleteUser('${name}')" class="absolute bottom-2 right-4 text-xs text-slate-400 hover:text-red-400 underline p-1 z-10">消去</button>
+                </div>`;
+        });
+    }
+    appContainer.innerHTML = `
+        <div class="p-8 md:p-12 flex flex-col items-center justify-center animate-pop w-full">
+            <h1 class="text-4xl font-bold text-indigo-600 mb-8 text-center w-full block tracking-wider">だれがあそぶ？</h1>
+            <div class="w-full max-w-sm mb-8 flex flex-col items-center">${userListHtml || '<p class="text-slate-500 font-bold mb-4">まだとうろくがないよ</p>'}</div>
+            <div class="w-full max-w-[280px] bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-lg flex flex-col items-center">
+                <input type="text" id="newUserName" placeholder="なまえをにゅうりょくしてね" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-3 mb-3 font-bold text-center text-base focus:outline-purple-400">
+                <button onclick="createNewUser()" class="w-2/3 bg-teal-500 hover:bg-teal-600 border-b-4 border-teal-700 text-white font-black py-2 rounded-xl text-base shadow-md transform active:scale-95 transition">とうろく</button>
+            </div>
+        </div>`;
+}
+
+function createNewUser() {
+    const name = document.getElementById('newUserName').value.trim();
+    if (!name || allUsersData[name]) return;
+    allUsersData[name] = { eggType: null, totalCorrect: 0, mistakes: {}, totalCorrectPerWord: {} };
+    currentUser = name;
+    saveData();
+    showEggSelectionScreen();
+}
+
+function loginUser(name) { currentUser = name; getUserData().eggType === null ? showEggSelectionScreen() : showStartScreen(); }
+function deleteUser(name) { if(confirm('消しますか？')){ delete allUsersData[name]; saveData(); showUserSelectionScreen(); } }
+
+function showEggSelectionScreen() {
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-app-cream relative overflow-hidden";
+    appContainer.innerHTML = `
+    <div class="p-8 min-h-screen flex flex-col items-center justify-center animate-pop w-full">
+        <h1 class="text-2xl font-medium text-[#634730] mb-8 text-center">あいぼうをえらぼう！</h1>
+        <div class="grid grid-cols-3 gap-4 w-full max-w-md justify-center">
+            <button onclick="selectEgg(0)" class="p-4 border-2 border-red-200 bg-red-50 rounded-3xl shadow-md transform transition active:scale-95 text-[#4a3728] font-bold">
+                ほのお<br><span class="text-4xl block mt-2">🥚</span>
+            </button>
+            
+            <button onclick="selectEgg(1)" class="p-4 border-2 border-blue-200 bg-blue-50 rounded-3xl shadow-md transform transition active:scale-95 text-[#4a3728] font-bold">
+                みず<br><span class="text-4xl block mt-2">🥚</span>
+            </button>
+            
+            <button onclick="selectEgg(2)" class="p-4 border-2 border-emerald-200 bg-emerald-100/70 rounded-3xl shadow-md transform transition active:scale-95 text-[#4a3728] font-bold">
+                もり<br><span class="text-4xl block mt-2">🥚</span>
+            </button>
+        </div>
+    </div>`;
+}
+function selectEgg(type) { allUsersData[currentUser].eggType = type; saveData(); showStartScreen(); }
+
+function showStartScreen() {
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-app-purple relative overflow-hidden";
+    const uData = getUserData();
+    const monster = getCurrentMonster();
+    appContainer.innerHTML = `
+    <div class="p-8 flex flex-col items-center animate-pop">
+       <button onclick="currentUser=null;showUserSelectionScreen()" class="mb-8 px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 border-2 border-b-4 border-emerald-200 hover:border-emerald-300 font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1">
+            <span>←</span> もどる
+        </button>
+        
+        <div class="${monster.bg} p-8 rounded-3xl border-4 ${monster.border} mb-8 w-full text-center shadow-inner">
+            <div class="text-8xl mb-4 animate-float">${monster.emoji}</div>
+            <h2 class="text-2xl font-black text-slate-700">${monster.name}</h2>
+            <p class="text-slate-600 font-bold mt-1">レベル：${uData.totalCorrect}</p>
+        </div>
+        <button onclick="startGame()" class="w-full bg-teal-500 hover:bg-teal-600 border-b-4 border-teal-700 text-white font-black py-4 rounded-2xl text-xl shadow-md transform active:scale-95 transition">しゅつげき（10問）</button>
+    </div>`;
+}
+
+function startGame() {
+    if (typeof allWordData === 'undefined') return;
+
+    const uData = getUserData();
+    if (!uData.totalCorrectPerWord) uData.totalCorrectPerWord = {};
+    if (!uData.mistakes) uData.mistakes = {};
+
+    let targetLevel = 1;
+    for (let l = 1; l <= 3; l++) {
+        const levelWords = allWordData.filter(w => w.level === l);
+        const hasRemaining = levelWords.some(w => !uData.totalCorrectPerWord[w.word]);
+        targetLevel = l;
+        if (hasRemaining) break; 
+    }
+
+    let priorityPool = allWordData.filter(w => {
+        if (w.level !== targetLevel) return false;
+        const correctCount = uData.totalCorrectPerWord[w.word] || 0;
+        const mistakeCount = uData.mistakes[w.word] || 0;
+        return correctCount === 0 || mistakeCount > 0;
+    });
+
+    let nextLevelPool = allWordData.filter(w => w.level > targetLevel);
+
+    let masteredPool = allWordData.filter(w => 
+        w.level === targetLevel && (uData.totalCorrectPerWord[w.word] || 0) > 0 && (uData.mistakes[w.word] || 0) === 0
+    );
+
+    let selection = [];
+    selection = shuffleArray(priorityPool).slice(0, 10);
+
+    if (selection.length < 10) {
+        const extraNext = shuffleArray(nextLevelPool).filter(w => !selection.includes(w)).slice(0, 10 - selection.length);
+        selection = [...selection, ...extraNext];
+    }
+
+    if (selection.length < 10) {
+        const extraMastered = shuffleArray(masteredPool).filter(w => !selection.includes(w)).slice(0, 10 - selection.length);
+        selection = [...selection, ...extraMastered];
+    }
+
+    currentSessionWords = shuffleArray(selection);
+    currentQuestionIndex = 0; 
+    currentScore = 0; 
+    showQuestion();
+}
+
+function showQuestion() {
+    isAnswering = false;
+    if (currentQuestionIndex >= currentSessionWords.length) { showResultScreen(); return; }
+    const uData = getUserData();
+    const currentQ = currentSessionWords[currentQuestionIndex];
+    let choices = shuffleArray(currentQ.choices.map((c, i) => ({t:c, i:i})));
+    // 「もり」の背景色をボタントーンと差別化するため bg-emerald-100/70 に調整
+    const theme = { "0": { bg: "bg-red-50", btn: "bg-white border-red-200" }, "1": { bg: "bg-blue-50", btn: "bg-white border-blue-200" }, "2": { bg: "bg-emerald-100/70", btn: "bg-white border-emerald-200" } }[uData.eggType] || { bg: "bg-slate-50", btn: "bg-white border-slate-200" };
+
+    appContainer.className = `max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl relative overflow-hidden ${theme.bg}`;
+    appContainer.innerHTML = `
+    <div class="px-6 pt-4 pb-24 flex flex-col items-center min-h-screen w-full transition-colors duration-500 justify-start">
+        <p class="mb-2 text-slate-500 font-bold text-sm">第 ${currentQuestionIndex + 1} 問</p>
+        <div class="relative mb-6 flex items-center justify-center min-h-[90px]">
+            <h2 class="text-6xl font-black text-slate-800 readable-eng-word">${currentQ.word}</h2>
+            <div id="overlay" class="absolute inset-0 hidden items-center justify-center text-9xl font-bold z-50 pointer-events-none opacity-80"></div>
+        </div>
+        <div id="choices" class="grid grid-cols-1 gap-4 w-full max-w-md"></div>
+    </div>`;
+
+    const choicesContainer = document.getElementById('choices');
+    
+    choices.forEach((c) => {
+        const b = document.createElement('button');
+        b.className = `px-6 h-28 flex items-center justify-center text-center border-2 ${theme.btn} rounded-3xl font-bold text-2xl shadow-md transition-all transform active:scale-95 readable-choice choice-btn-item text-slate-800 w-full`;
+        b.innerHTML = `<span class="inline-block vertical-align-middle leading-snug w-full">${c.t}</span>`;
+        b.dataset.isCorrect = (c.i === currentQ.answer);
+
+        b.onclick = () => {
+            if(isAnswering) return; 
+            isAnswering = true;
+            const correct = (c.i === currentQ.answer);
+            const ov = document.getElementById('overlay');
+            ov.innerHTML = correct ? '◯' : '✕';
+            ov.style.color = correct ? '#ef4444' : '#3b82f6'; 
+            ov.style.display = 'flex';
+            
+            const allButtons = choicesContainer.querySelectorAll('.choice-btn-item');
+            allButtons.forEach(btn => {
+                if (btn.dataset.isCorrect === 'true') {
+                    btn.classList.add('btn-correct');
+                }
+            });
+            
+            if(correct) { 
+                currentScore++; 
+                currentQ.isUserCorrect = true;
+                if (!uData.totalCorrectPerWord) uData.totalCorrectPerWord = {};
+                
+                if (!uData.totalCorrectPerWord[currentQ.word]) {
+                    uData.totalCorrect++; 
+                    uData.totalCorrectPerWord[currentQ.word] = 1;
+                }
+                
+                if (uData.mistakes && uData.mistakes[currentQ.word] > 0) {
+                    uData.mistakes[currentQ.word]--;
+                }
+            } else {
+                currentQ.isUserCorrect = false;
+                if (!uData.mistakes) uData.mistakes = {};
+                uData.mistakes[currentQ.word] = (uData.mistakes[currentQ.word] || 0) + 1;
+            }
+            
+            saveData();
+            setTimeout(() => { currentQuestionIndex++; showQuestion(); }, 1500);
+        };
+        choicesContainer.appendChild(b);
+    });
+}
+
+function shareOnX() {
+    const text = encodeURIComponent(`ふりがな英単語アプリで 10問中 ${currentScore}問 正解したよ！🔥\n`);
+    const url = "https://twitter.com/intent/tweet?text=" + text;
+    window.open(url, '_blank');
+}
+
+function shareOnInstagram() {
+    alert("📸 Instagramシェア方法：\n\nこの結果画面を「スクリーンショット（パシャッ）」と撮影して、ストーリーズや投稿に貼り付けてシェアしてね！🌟");
+}
+
+function showResultScreen() {
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-[#fff999] relative overflow-hidden";
+    
+    appContainer.innerHTML = `
+    <div class="px-4 pt-4 pb-24 flex flex-col items-center h-screen max-h-screen w-full animate-pop justify-between">
+        
+        <div class="w-full text-center mt-1">
+            <h2 class="text-3xl font-medium text-[#166534] tracking-widest font-sans mb-1">結果発表</h2>
+            <div class="text-lg font-medium text-slate-500">
+                ${currentScore} / 10 問正解！
+            </div>
+        </div>
+        
+        <div class="w-full max-w-md mt-0 mb-2 flex-1 flex flex-col justify-center space-y-1">
+            ${currentSessionWords.map((q) => {
+                const isCorrect = q.isUserCorrect;
+                const mark = isCorrect ? '◯' : '✕';
+                const boxBg = isCorrect ? 'bg-emerald-50/80 border-emerald-200' : 'bg-rose-50/80 border-rose-200';
+
+                let correctText = q.choices[q.answer];
+                if (correctText.includes('<br>')) {
+                    correctText = correctText.split('<br>')[0];
+                }
+
+                return `
+                    <div class="px-4 py-1.5 border rounded-xl flex items-center justify-between text-base bg-white ${boxBg}">
+                        <div class="flex items-baseline flex-1 overflow-hidden">
+                            <span class="text-lg font-bold text-slate-800 readable-eng-word whitespace-nowrap truncate w-[55%] text-left block">${q.word}</span>
+                            <span class="text-sm font-bold text-slate-600 truncate result-ruby w-[45%] text-left block pr-2">${correctText}</span>
+                        </div>
+                        <div class="text-xl font-black text-slate-800 shrink-0 w-6 text-right select-none">
+                            ${mark}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        
+        <div class="w-full max-w-md space-y-3 mb-4">
+            <button onclick="showStartScreen()" class="w-full bg-teal-500 hover:bg-teal-600 border-b-4 border-teal-700 text-white font-black py-3 rounded-xl text-base shadow-md transform active:scale-95 transition">
+                ホームにもどる
+            </button>
+            
+            <div class="grid grid-cols-2 gap-3 pt-0.5">
+                <button onclick="shareOnX()" class="bg-slate-950 hover:bg-slate-900 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 transition transform active:scale-95">
+                    <span class="font-black text-sm">𝕏</span> Share on X
+                </button>
+                <button onclick="shareOnInstagram()" class="bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] hover:opacity-95 text-white font-medium py-1.5 px-3 rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 transition transform active:scale-95">
+                    Share on Instagram
+                </button>
+            </div>
+        </div>
+
+    </div>`;
+}
+
+window.onload = () => { showUserSelectionScreen(); };
+</script>
+</body>
+</html>
