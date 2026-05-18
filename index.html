@@ -56,7 +56,7 @@
 const lv1 = [
 { 
     "word": "action", 
-    "choices": ["<ruby>行動<rt>こうどう</rt></ruby>", "<ruby>計画<rt>けいかく</rt></ruby>", "<ruby>発見<rt>発見</rt></ruby>", "<ruby>期待<rt>きたい</rt></ruby>"], 
+    "choices": ["<ruby>行動<rt>こうどう</rt></ruby>", "<ruby>計画<rt>けいかく</rt></ruby>", "<ruby>発見<rt>はっけん</rt></ruby>", "<ruby>期待<rt>きたい</rt></ruby>"], 
     "answer": 0 
   },
   { 
@@ -3035,6 +3035,47 @@ function showResultScreen() {
 }
 
 window.onload = () => { showUserSelectionScreen(); };
+</script>
+<!-- ⚙️ 設定・メニューボタン（画面の右上や右下にちょこんと置く用） -->
+<div style="text-align: right; padding: 10px;">
+    <button onclick="toggleSettings()" style="background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 13px; color: #666;">
+        ⚙️ アプリ情報・お問い合わせ
+    </button>
+</div>
+
+<!-- 📦 普段は隠れている「設定ページ風」のエリア -->
+<div id="settings-area" style="display: none; margin: 20px auto; padding: 20px; max-width: 600px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa; text-align: left; font-size: 12px; color: #666; line-height: 1.6;">
+    
+    <!-- ① お問い合わせ -->
+    <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+        <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333;">お問い合わせ窓口</p>
+        <p style="margin-bottom: 10px;">アプリの不具合やご意見がございましたら、以下よりご連絡ください。</p>
+        <a href="https://forms.gle/CjChGx9ZcG9ZjmFi9" target="_blank" style="display: inline-block; background-color: #4da6ff; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            お問い合わせフォームを開く
+        </a>
+    </div>
+
+    <!-- ② プライバシーポリシー（これで達成しています！） -->
+    <div style="margin-bottom: 15px;">
+        <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333;">プライバシーポリシー</p>
+        <p>当アプリでは、利用者の個人情報を不正に取得・収集することは一切ありません。また、クイズの成績などのデータは利用者の端末内にのみ保存され、外部のサーバーに送信されることはありません。安心してご利用ください。</p>
+    </div>
+
+    <p style="text-align: center; margin-top: 20px; font-size: 11px;">&copy; 2026 ふりがな英単語アプリ</p>
+</div>
+
+<!-- ⚙️ 表示・非表示を切り替えるためのJavaScriptプログラム -->
+<script>
+function toggleSettings() {
+    var area = document.getElementById("settings-area");
+    if (area.style.display === "none") {
+        area.style.display = "block"; // クリックされたら表示する
+        // 表示された時に一番下まで自動スクロールすると親切です
+        area.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        area.style.display = "none";  // もう一度クリックされたら隠す
+    }
+}
 </script>
 </body>
 </html>
