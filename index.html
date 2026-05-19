@@ -925,7 +925,7 @@ const lv1 = [
       "<ruby>嘘をつく<rt>うそをつく</rt></ruby>",
       "<ruby>約束する<rt>やくそくする</rt></ruby>",
       "<ruby>謝る<rt>あやまる</rt></ruby>",
-      "<ruby>自慢する<rt>じまん</rt></ruby>"
+      "<ruby>自慢する<rt>じまんする</rt></ruby>"
     ],
     "answer": 0
   },
@@ -2991,18 +2991,20 @@ function shareOnInstagram() {
 }
 
 function showResultScreen() {
-    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-[#fff999] relative overflow-hidden";
+    // 背景を真っ白（bg-white）に変更
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-white relative overflow-hidden";
     
     appContainer.innerHTML = `
     <div class="px-4 pt-4 pb-24 flex flex-col items-center h-screen max-h-screen w-full animate-pop justify-between">
         
         <div class="w-full text-center mt-1">
-            <h2 class="text-3xl font-medium text-slate-700 tracking-widest font-sans mb-1">
-    <ruby>結果発表<rt class="text-[10px] tracking-normal block -mb-1 text-slate-400 font-bold">けっかはっぴょう</rt></ruby>
-</h2>
-<div class="text-lg font-medium text-slate-500">
-    ${currentScore} / 10 <ruby>問正解<rt class="text-[10px] tracking-normal block -mb-1 text-slate-400 font-bold">もんせいかい</rt></ruby>！
-</div>
+            <!-- ルビの書き方をシンプルにして表示崩れを防止 -->
+            <h2 class="text-3xl font-black text-slate-700 tracking-widest mb-1">
+                <ruby>結果発表<rt>けっかはっぴょう</rt></ruby>
+            </h2>
+            <div class="text-lg font-bold text-slate-500 mt-2">
+                ${currentScore} / 10 <ruby>問正解<rt>もんせいかい</rt></ruby>！
+            </div>
         </div>
         
         <div class="w-full max-w-md mt-0 mb-2 flex-1 flex flex-col justify-center space-y-1">
@@ -3011,13 +3013,12 @@ function showResultScreen() {
                 const mark = isCorrect ? '◯' : '✕';
                 const boxBg = isCorrect ? 'bg-emerald-50/80 border-emerald-200' : 'bg-rose-50/80 border-rose-200';
 
-                // allWordData(元のデータ)から、シャッフルされていない正しい正解テキストを取得する
-const originalWord = allWordData.find(w => w.word === q.word);
-let correctText = originalWord ? originalWord.choices[originalWord.answer] : q.choices[q.answer];
+                const originalWord = allWordData.find(w => w.word === q.word);
+                let correctText = originalWord ? originalWord.choices[originalWord.answer] : q.choices[q.answer];
 
-if (correctText.includes('<br>')) {
-    correctText = correctText.split('<br>')[0];
-}
+                if (correctText.includes('<br>')) {
+                    correctText = correctText.split('<br>')[0];
+                }
 
                 return `
                     <div class="px-4 py-1.5 border rounded-xl flex items-center justify-between text-base bg-white ${boxBg}">
