@@ -3052,15 +3052,17 @@ function showResultScreen() {
 
 window.onload = () => { showUserSelectionScreen(); };
 </script>
-<!-- ⚙️ 設定・メニューボタン（画面の右上や右下にちょこんと置く用） -->
-<div style="text-align: right; padding: 10px;">
-    <button onclick="toggleSettings()" style="background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 13px; color: #666;">
+<!-- ⚙️ 設定・メニューボタン -->
+<!-- 💡 pb-24（下部余白）を付与し、画面最下部の固定広告と絶対に重ならないように保護します -->
+<div class="max-w-2xl mx-auto px-4 pt-4 pb-24 text-right">
+    <button onclick="toggleSettings()" style="background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #555; font-weight: bold; shadow: 0 1px 2px rgba(0,0,0,0.05);">
         ⚙️ アプリ情報・お問い合わせ
     </button>
 </div>
 
 <!-- 📦 普段は隠れている「設定ページ風」のエリア -->
-<div id="settings-area" style="display: none; margin: 20px auto; padding: 20px; max-width: 600px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa; text-align: left; font-size: 12px; color: #666; line-height: 1.6;">
+<!-- 💡 margin-bottomを120pxに広げ、開いたコンテンツが広告の下に潜り込むのを防ぎます -->
+<div id="settings-area" style="display: none; margin: 20px auto 120px auto; padding: 20px; max-width: 600px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa; text-align: left; font-size: 12px; color: #666; line-height: 1.6;">
     
     <!-- ① お問い合わせ -->
     <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
@@ -3071,14 +3073,14 @@ window.onload = () => { showUserSelectionScreen(); };
         </a>
     </div>
 
-<!-- プライバシーポリシー -->
+    <!-- プライバシーポリシー -->
     <div style="margin-bottom: 15px;">
         <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333;">プライバシーポリシー</p>
         <p>当アプリでは、利用者の個人情報を不正に取得・収集することは一切ありません。また、クイズの成績などのデータは利用者の端末内にのみ保存され、外部のサーバーに送信されることはありません。安心してご利用ください。</p>
-    </div> <!-- ← 正しく閉じました -->
+    </div>
 
     <p style="text-align: center; margin-top: 20px; font-size: 11px;">&copy; 2026 ふりがな英単語アプリ</p>
-</div> <!-- ← settings-area を閉じました -->
+</div>
 
 <!-- ⚙️ 表示・非表示を切り替えるためのJavaScriptプログラム -->
 <script>
@@ -3086,7 +3088,10 @@ function toggleSettings() {
     var area = document.getElementById("settings-area");
     if (area.style.display === "none") {
         area.style.display = "block";
-        area.scrollIntoView({ behavior: 'smooth' });
+        // 💡 広告の高さに被らないよう、中央付近にスムーズスクロールさせます
+        setTimeout(() => {
+            area.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
     } else {
         area.style.display = "none";
     }
@@ -3094,12 +3099,14 @@ function toggleSettings() {
 </script>
 
 <!-- 画面最下部に固定される広告表示エリア -->
-
-<!-- 画面最下部に固定される広告表示エリア -->
-<div class="fixed bottom-0 left-0 w-full flex justify-center bg-white/90 backdrop-blur-sm py-1 border-t border-slate-200 z-50">
-    <div id="admax-container" class="w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded">
-        <!-- 忍者AdMaxのコード -->
-        <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
+<div class="fixed bottom-0 left-0 w-full flex justify-center bg-white/95 backdrop-blur-sm py-1.5 border-t border-slate-200 z-50">
+    <div id="admax-container" class="relative w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
+        <!-- 💡 クローラー対策：PC/タブレットなどでJSが広告を描画しなかった場合のみ裏側のテキストが見える状態にします -->
+        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">スマートフォン専用広告枠（掲載確認用）</span>
+        <div class="relative z-10 w-full h-full flex items-center justify-center">
+            <!-- 忍者AdMaxのコード -->
+            <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
+        </div>
     </div>
 </div>
 </body>
