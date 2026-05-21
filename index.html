@@ -3097,26 +3097,47 @@ function toggleSettings() {
     }
 }
 </script>
-<!-- 画面最下部に固定される広告表示エリア（全端末最適化版） -->
+<!-- 画面最下部に固定される広告表示エリア（バグ解消＆全端末美観キープ版） -->
 <div class="fixed bottom-0 left-0 w-full flex justify-center bg-white/95 backdrop-blur-sm py-1.5 border-t border-slate-200 z-50">
-    <div id="admax-container" class="relative w-[320px] h-[50px] md:w-[728px] md:h-[90px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
-        <!-- 💡 クローラー対策：JSが広告を描画しなかった場合のみ裏側のテキストが見える状態にします -->
+    
+    <!-- 📱スマホ用の箱（320x50） -->
+    <div id="ad-sp-box" class="block md:hidden relative w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
         <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア</span>
-        
         <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <script>
-                // 画面の横幅が 768px 以上（iPadやPC）かどうかを判定
-                if (window.innerWidth >= 768) {
-                    // 🖥️【PC・iPad】ちょうど良かった「レスポンシブ広告」を表示
-                    document.write('<script src="https://adm.shinobi.jp/s/8f186e50618777d327eb9522c0bda4e"><\/script>');
-                } else {
-                    // 📱【スマホ】元通りのちょうど良い「320x50広告」を表示
-                    document.write('<script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"><\/script>');
-                }
-            </script>
+            <!-- スマホ用の既存コード（そのまま使えます） -->
+            <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
         </div>
     </div>
+
+    <!-- 🖥️ PC・iPad用の箱（728x90） -->
+    <div id="ad-pc-box" class="hidden md:flex relative w-[728px] h-[90px] items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
+        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア</span>
+        <div class="relative z-10 w-full h-full flex items-center justify-center">
+<script src="https://adm.shinobi.jp/s/863ac93e4c16f5b110733bbfbd37b323"></script>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    // ブラウザの判定バグをCSSレベルで完璧に補正するスクリプト
+    function adjustAdDisplay() {
+        var spBox = document.getElementById('ad-sp-box');
+        var pcBox = document.getElementById('ad-pc-box');
+        if (!spBox || !pcBox) return;
+
+        if (window.innerWidth >= 768) {
+            spBox.style.display = 'none';
+            pcBox.style.display = 'flex';
+        } else {
+            spBox.style.display = 'flex';
+            pcBox.style.display = 'none';
+        }
+    }
+    // 起動時と画面サイズが変更された時に実行
+    window.addEventListener('DOMContentLoaded', adjustAdDisplay);
+    window.addEventListener('resize', adjustAdDisplay);
+</script>
 
 </body>
 </html>
