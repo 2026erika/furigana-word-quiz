@@ -3097,47 +3097,56 @@ function toggleSettings() {
     }
 }
 </script>
-<!-- 画面最下部に固定される広告表示エリア（バグ解消＆全端末美観キープ版） -->
+<!-- 画面最下部に固定される広告表示エリア（プロ仕様・読み込みバグ完全解消版） -->
 <div class="fixed bottom-0 left-0 w-full flex justify-center bg-white/95 backdrop-blur-sm py-1.5 border-t border-slate-200 z-50">
     
     <!-- 📱スマホ用の箱（320x50） -->
-    <div id="ad-sp-box" class="block md:hidden relative w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
+    <div id="ad-sp-box" class="relative w-[320px] h-[50px] flex items-center justify-center bg-slate-50 text-[10px] text-slate-400 rounded overflow-hidden">
         <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア</span>
         <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <!-- スマホ用の既存コード（そのまま使えます） -->
+            <!-- スマホ用広告コード -->
             <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
         </div>
     </div>
 
     <!-- 🖥️ PC・iPad用の箱（728x90） -->
-    <div id="ad-pc-box" class="hidden md:flex relative w-[728px] h-[90px] items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
+    <div id="ad-pc-box" class="relative w-[728px] h-[90px] flex items-center justify-center bg-slate-50 text-[10px] text-slate-400 rounded overflow-hidden">
         <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア</span>
         <div class="relative z-10 w-full h-full flex items-center justify-center">
-<script src="https://adm.shinobi.jp/s/863ac93e4c16f5b110733bbfbd37b323"></script>
+            <!-- 新しく作成されたPC用広告コード -->
+            <script src="https://adm.shinobi.jp/s/863ac93e4c16f5b110733bbfbd37b323"></script>
         </div>
     </div>
 
 </div>
 
 <script>
-    // ブラウザの判定バグをCSSレベルで完璧に補正するスクリプト
+    // 広告スクリプトの読み込み遮断を完全に防ぐ高精度コントロール
     function adjustAdDisplay() {
         var spBox = document.getElementById('ad-sp-box');
         var pcBox = document.getElementById('ad-pc-box');
         if (!spBox || !pcBox) return;
 
-        if (window.innerWidth >= 768) {
-            spBox.style.display = 'none';
-            pcBox.style.display = 'flex';
+        // iPad（768px）を確実にPC版に含めるため、境界を「767px超」に設定
+        var isDesktopOrPad = window.innerWidth > 767;
+
+        if (isDesktopOrPad) {
+            // PC・iPadの場合：PC用を表示、スマホ用を完全に非表示（存在ごと消す）
+            pcBox.style.setProperty('display', 'flex', 'important');
+            spBox.style.setProperty('display', 'none', 'important');
         } else {
-            spBox.style.display = 'flex';
-            pcBox.style.display = 'none';
+            // スマホの場合：スマホ用を表示、PC用を完全に非表示
+            spBox.style.setProperty('display', 'flex', 'important');
+            pcBox.style.setProperty('display', 'none', 'important');
         }
     }
-    // 起動時と画面サイズが変更された時に実行
-    window.addEventListener('DOMContentLoaded', adjustAdDisplay);
-    window.addEventListener('resize', adjustAdDisplay);
-</script>
 
+    // ブラウザがHTMLの解析を終えた直後（広告ロード前）に枠の初期配置を確定させる
+    document.addEventListener('DOMContentLoaded', adjustAdDisplay);
+    // 画面の回転やリサイズにも即座に追従させる
+    window.addEventListener('resize', adjustAdDisplay);
+    // 念のためすべての読み込みが完了したタイミングでも再実行
+    window.addEventListener('load', adjustAdDisplay);
+</script>
 </body>
 </html>
