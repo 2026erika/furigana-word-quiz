@@ -3052,37 +3052,18 @@ function showResultScreen() {
 
 window.onload = () => { showUserSelectionScreen(); };
 </script>
-<!-- 📱【スマホ用】画面最下部に固定される広告（スマホの時だけ表示） -->
-<div class="block md:hidden fixed bottom-0 left-0 w-full flex justify-center bg-white/95 backdrop-blur-sm py-1.5 border-t border-slate-200 z-50">
-    <div class="relative w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
-        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア(SP)</span>
-        <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
-        </div>
-    </div>
-</div>
-
-<!-- 🖥️【PC・iPad用】アプリの下に自然に配置する広告（画面に被らない！） -->
-<!-- 💡 max-w-2xlの枠内に収めることで、アプリのデザインと一体化させます -->
-<div class="hidden md:block max-w-2xl mx-auto px-4 mt-8 text-center">
-    <div class="inline-block relative w-[300px] h-[250px] bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden shadow-sm">
-        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア(PC)</span>
-        <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <script src="https://adm.shinobi.jp/s/8f186e50618777d327eb9522c0bda4e"></script>
-        </div>
-    </div>
-</div>
-
 <!-- ⚙️ 設定・メニューボタン -->
-<!-- 💡 スマホの時は固定広告を避けるために余白(pb-24)を入れ、PCの時はすっきり見せます -->
-<div class="max-w-2xl mx-auto px-4 pt-4 pb-24 md:pb-8 text-center md:text-right">
-    <button onclick="toggleSettings()" style="background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #555; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+<!-- 💡 pb-24（下部余白）を付与し、画面最下部の固定広告と絶対に重ならないように保護します -->
+<div class="max-w-2xl mx-auto px-4 pt-4 pb-24 text-right">
+    <button onclick="toggleSettings()" style="background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #555; font-weight: bold; shadow: 0 1px 2px rgba(0,0,0,0.05);">
         ⚙️ アプリ情報・お問い合わせ
     </button>
 </div>
 
 <!-- 📦 普段は隠れている「設定ページ風」のエリア -->
-<div id="settings-area" style="display: none; margin: 20px auto 40px auto; padding: 20px; max-width: 600px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa; text-align: left; font-size: 12px; color: #666; line-height: 1.6;">
+<!-- 💡 margin-bottomを120pxに広げ、開いたコンテンツが広告の下に潜り込むのを防ぎます -->
+<div id="settings-area" style="display: none; margin: 20px auto 120px auto; padding: 20px; max-width: 600px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa; text-align: left; font-size: 12px; color: #666; line-height: 1.6;">
+    
     <!-- ① お問い合わせ -->
     <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
         <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333;">お問い合わせ窓口</p>
@@ -3091,11 +3072,13 @@ window.onload = () => { showUserSelectionScreen(); };
             お問い合わせフォームを開く
         </a>
     </div>
+
     <!-- プライバシーポリシー -->
     <div style="margin-bottom: 15px;">
         <p style="font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #333;">プライバシーポリシー</p>
         <p>当アプリでは、利用者の個人情報を不正に取得・収集することは一切ありません。また、クイズの成績などのデータは利用者の端末内にのみ保存され、外部のサーバーに送信されることはありません。安心してご利用ください。</p>
     </div>
+
     <p style="text-align: center; margin-top: 20px; font-size: 11px;">&copy; 2026 ふりがな英単語アプリ</p>
 </div>
 
@@ -3114,27 +3097,25 @@ function toggleSettings() {
     }
 }
 </script>
-<!-- 画面最下部に固定される広告表示エリア（端末サイズ最適化版） -->
+<!-- 画面最下部に固定される広告表示エリア（全端末最適化版） -->
 <div class="fixed bottom-0 left-0 w-full flex justify-center bg-white/95 backdrop-blur-sm py-1.5 border-t border-slate-200 z-50">
-    
-    <!-- 📱【スマホ用枠】画面幅が768px未満（スマホ）の時だけ表示し、320x50の箱にする -->
-    <div class="block md:hidden relative w-[320px] h-[50px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
-        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア(SP)</span>
+    <div id="admax-container" class="relative w-[320px] h-[50px] md:w-[728px] md:h-[90px] flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
+        <!-- 💡 クローラー対策：JSが広告を描画しなかった場合のみ裏側のテキストが見える状態にします -->
+        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア</span>
+        
         <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <!-- 🌟 スマホ用(320x50)の広告コード -->
-            <script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"></script>
+            <script>
+                // 画面の横幅が 768px 以上（iPadやPC）かどうかを判定
+                if (window.innerWidth >= 768) {
+                    // 🖥️【PC・iPad】ちょうど良かった「レスポンシブ広告」を表示
+                    document.write('<script src="https://adm.shinobi.jp/s/8f186e50618777d327eb9522c0bda4e"><\/script>');
+                } else {
+                    // 📱【スマホ】元通りのちょうど良い「320x50広告」を表示
+                    document.write('<script src="https://adm.shinobi.jp/s/c5d55e23d00d7c1ec52248cae36791dc"><\/script>');
+                }
+            </script>
         </div>
     </div>
-
-    <!-- 🖥️【PC・iPad用枠】画面幅が768px以上（PC/iPad）の時だけ表示し、300x250の箱にする -->
-    <div class="hidden md:flex relative w-[300px] h-[250px] items-center justify-center bg-slate-100 text-[10px] text-slate-400 rounded overflow-hidden">
-        <span class="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-400 select-none z-0">広告掲載エリア(PC)</span>
-        <div class="relative z-10 w-full h-full flex items-center justify-center">
-            <!-- 🌟 PC用(300x250)の広告コード -->
-            <script src="https://adm.shinobi.jp/s/8f186e50618777d327eb9522c0bda4e"></script>
-        </div>
-    </div>
-
 </div>
 
 </body>
