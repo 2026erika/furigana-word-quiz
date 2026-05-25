@@ -2833,7 +2833,6 @@ function showEggSelectionScreen() {
     </div>`;
 }
 function selectEgg(type) { allUsersData[currentUser].eggType = type; saveData(); showStartScreen(); }
-
 function showStartScreen() {
     appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-app-purple relative overflow-hidden";
     const uData = getUserData();
@@ -2849,7 +2848,13 @@ function showStartScreen() {
             <h2 class="text-2xl font-black text-slate-700">${monster.name}</h2>
             <p class="text-slate-600 font-bold mt-1">レベル：${uData.totalCorrect}</p>
         </div>
-        <button onclick="startGame()" class="w-full bg-teal-500 hover:bg-teal-600 border-b-4 border-teal-700 text-white font-black py-4 rounded-2xl text-xl shadow-md transform active:scale-95 transition">しゅつげき（10問）</button>
+        
+        <button onclick="startGame()" class="w-full bg-teal-500 hover:bg-teal-600 border-b-4 border-teal-700 text-white font-black py-4 rounded-2xl text-xl shadow-md transform active:scale-95 transition mb-4">しゅつげき（10問）</button>
+        
+        <!-- 📊 レポート確認ボタンを追加 -->
+        <button onclick="showLearningReport()" class="w-full bg-white hover:bg-slate-50 border-2 border-b-4 border-slate-200 text-slate-600 font-bold py-3 rounded-2xl text-base shadow-sm transform active:scale-95 transition">
+            📊 がくしゅうレポート（ほごしゃ用）
+        </button>
     </div>`;
 }
 function startGame() {
@@ -3080,6 +3085,101 @@ function showResultScreen() {
     </div>`;
 }
 
+function showLearningReport() {
+    appContainer.className = "max-w-2xl mx-auto min-h-screen flex flex-col shadow-2xl bg-white relative overflow-hidden pb-16";
+    
+    const uData = getUserData();
+    const mistakes = uData.mistakes || {};
+    const corrects = uData.totalCorrectPerWord || {};
+
+    // 単語を「にがて」「おぼえた」「未挑戦」に分類
+    const mistakeWords = [];
+    const masteredWords = [];
+    const unattemptedWords = [];
+
+    allWordData.forEach(w => {
+        const isMistake = (mistakes[w.word] || 0) > 0;
+        const isCorrect = (corrects[w.word] || 0) > 0;
+
+        if (isMistake) {
+            mistakeWords.push(w);
+        } else if (isCorrect) {
+            masteredWords.push(w);
+        } else {
+            unattemptedWords.push(w);
+        }
+    });
+
+    // リストのHTMLを生成するヘルパー関数
+    function makeWordListHtml(words, badgeColor, badgeText) {
+        if (words.length === 0) {
+            return `<p class="text-slate-400 text-sm font-bold pl-2 py-1">該当する単語はありません</p>`;
+        }
+        return words.map(w => {
+            // HTMLタグ（rubyなど）を除去して表示用のテキストを作成
+            let meaning = w.choices[w.answer];
+            if (meaning.includes('<br>')) {
+                meaning = meaning.split('<br>')[0];
+            }
+            return `
+                <div class="flex items-center justify-between border-b border-slate-100 py-2 px-2 text-sm">
+                    <div class="flex items-baseline space-x-2 truncate">
+                        <span class="font-black text-slate-800 text-base">${w.word}</span>
+                        <span class="text-xs text-slate-500 truncate">${meaning}</span>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-bold ${badgeColor}">${badgeText} (Lv.${w.level})</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    appContainer.innerHTML = `
+    <div class="px-6 pt-6 pb-24 flex flex-col h-screen max-h-screen w-full justify-between animate-pop">
+        
+        <div class="flex items-center justify-between mb-4 shrink-0">
+            <h2 class="text-xl font-black text-slate-800">📊 がくしゅうレポート</h2>
+            <button onclick="showStartScreen()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition active:scale-95">
+                もどる
+            </button>
+        </div>
+
+        <!-- スクロール可能なレポート表示エリア -->
+        <div class="flex-1 overflow-y-auto space-y-6 pr-1">
+            
+            <!-- ① にがてな言葉（最優先） -->
+            <div>
+                <h3 class="text-sm font-black text-red-500 mb-2 flex items-center gap-1">
+                    <span>❌</span> にがてな言葉（練習中：${mistakeWords.length}問）
+                </h3>
+                <div class="bg-red-50/50 border border-red-100 rounded-2xl p-2 max-h-48 overflow-y-auto">
+                    ${makeWordListHtml(mistakeWords, "bg-red-100 text-red-600", "にがて")}
+                </div>
+            </div>
+
+            <!-- ② おぼえた言葉 -->
+            <div>
+                <h3 class="text-sm font-black text-emerald-600 mb-2 flex items-center gap-1">
+                    <span>✅</span> おぼえた言葉（クリア済み：${masteredWords.length}問）
+                </h3>
+                <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-2 max-h-48 overflow-y-auto">
+                    ${makeWordListHtml(masteredWords, "bg-emerald-100 text-emerald-600", "おぼえた")}
+                </div>
+            </div>
+
+            <!-- ③ まだやっていない言葉 -->
+            <div>
+                <h3 class="text-sm font-black text-slate-500 mb-2 flex items-center gap-1">
+                    <span>➖</span> まだやっていない言葉（${unattemptedWords.length}問）
+                </h3>
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-2 max-h-48 overflow-y-auto">
+                    ${makeWordListHtml(unattemptedWords, "bg-slate-100 text-slate-500", "未挑戦")}
+                </div>
+            </div>
+
+        </div>
+
+    </div>`;
+}
 window.onload = () => { showUserSelectionScreen(); };
 </script>
 <!-- ⚙️ 設定・メニューボタン -->
